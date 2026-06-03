@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brats2026-baselines"
+version = "0.1.0"
+description = "Baseline tooling for the MICCAI BraTS 2026 cluster of challenges."
+requires-python = ">=3.10"
+dependencies = [
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+mri = [
+  "nibabel>=5.2",
+  "numpy>=1.26",
+]
+pathology = [
+  "pillow>=10.0",
+]
+train = [
+  "monai>=1.4",
+  "torch>=2.3",
+  "webdataset>=0.2.100",
+  "torchvision>=0.18",
+]
+
+[project.scripts]
+brats2026 = "brats2026.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
