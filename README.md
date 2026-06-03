@@ -1,5 +1,7 @@
 # BraTS2026
 
+[![tests](https://github.com/Kirscher/BraTS2026/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Kirscher/BraTS2026/actions/workflows/tests.yml)
+
 Baseline tooling and experiment scaffolding for the MICCAI BraTS 2026 cluster:
 https://challenges.synapse.org/Challenges/DetailsPage/Overview?id=syn74274097
 

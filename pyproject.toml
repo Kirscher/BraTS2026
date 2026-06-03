@@ -25,6 +25,9 @@ train = [
   "webdataset>=0.2.100",
   "torchvision>=0.18",
 ]
+dev = [
+  "pytest>=8.0",
+]
 
 [project.scripts]
 brats2026 = "brats2026.cli:main"
