@@ -1,0 +1,17 @@
+# BraTS 2026 Task 3 (GoAT) — infer config STUB.
+# Filled by the ai-specialist AFTER the dataset fingerprint exists;
+# assert_valid_config refuses this stub on purpose (empty header + None hooks).
+# Every value below is an UNFILLABLE placeholder until the specialist sets it.
+kind: infer
+provenance:
+  git_sha: null
+  dataset_fingerprint: null
+  seed: null
+  parent_run_id: null
+  date: null
+  config_schema_version: null
+tta_axes: null
+ensemble_members: null
+ensemble_weights: null
+et_suppression_min_voxels: null
+cc_min_voxels: null

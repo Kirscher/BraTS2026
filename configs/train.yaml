@@ -1,0 +1,24 @@
+# BraTS 2026 Task 3 (GoAT) — train config STUB.
+# Filled by the ai-specialist AFTER the dataset fingerprint exists;
+# assert_valid_config refuses this stub on purpose (empty header + None hooks).
+# Every value below is an UNFILLABLE placeholder until the specialist sets it.
+kind: train
+provenance:
+  git_sha: null
+  dataset_fingerprint: null
+  seed: null
+  parent_run_id: null
+  date: null
+  config_schema_version: null
+initial_lr: null
+weight_decay: null
+num_epochs: null
+batch_size: null
+patch_size: null
+oversample_foreground_percent: null
+loss_dice_weight: null
+loss_ce_weight: null
+domain_sampling_alpha: null
+domain_rand_intensity_sigma: null
+domain_rand_contrast_range: null
+domain_rand_noise_sigma: null
