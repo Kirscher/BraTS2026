@@ -18,3 +18,7 @@ wandb/
 *.npz
 *.tar
 *.zip
+
+# generated / tooling artifacts (not source)
+graphify-out/
+.serena/
