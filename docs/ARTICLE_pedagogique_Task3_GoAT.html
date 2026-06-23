@@ -1,0 +1,1352 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Article BraTS Task 3 GoAT</title><style>
+@page { size: A4; margin: 18mm 16mm; }
+* { box-sizing: border-box; }
+body { font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; color:#1c2230; font-size:11pt; line-height:1.5; }
+h1 { font-size:22pt; color:#16203a; border-bottom:3px solid #2e7d57; padding-bottom:8px; margin-top:0; }
+h2 { font-size:15.5pt; color:#16203a; margin-top:26px; border-bottom:1px solid #dfe3ea; padding-bottom:4px; page-break-after:avoid; }
+h3 { font-size:12.5pt; color:#2e7d57; margin-top:18px; page-break-after:avoid; }
+h4 { font-size:11.5pt; color:#455a86; margin-top:14px; page-break-after:avoid; }
+p { margin:7px 0; }
+code { background:#eef0f4; padding:1px 5px; border-radius:4px; font-size:9.5pt; font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace; color:#b3541e; }
+pre code { display:block; padding:10px; color:#1c2230; }
+blockquote { border-left:4px solid #2e7d57; background:#f3f8f5; margin:12px 0; padding:8px 14px; color:#3a3f4b; border-radius:0 6px 6px 0; }
+blockquote p { margin:4px 0; }
+table { border-collapse:collapse; width:100%; margin:12px 0; font-size:9.7pt; page-break-inside:avoid; }
+th { background:#2e7d57; color:#fff; text-align:left; padding:6px 9px; font-weight:600; }
+td { border:1px solid #dfe3ea; padding:5px 9px; vertical-align:top; }
+tr:nth-child(even) td { background:#f7f8fa; }
+hr { border:0; border-top:1px solid #dfe3ea; margin:22px 0; }
+ul,ol { margin:6px 0 6px 4px; padding-left:22px; }
+li { margin:3px 0; }
+.figure { text-align:center; margin:16px 0; page-break-inside:avoid; }
+.figure svg { max-width:100%; height:auto; border:1px solid #e3e6ec; border-radius:8px; }
+a { color:#2e7d57; text-decoration:none; }
+</style></head><body>
+<h1 id="comprendre-le-code-du-projet-brats-2026-task-3-goat">Comprendre le code du projet BraTS 2026 — Task 3 (GoAT)</h1>
+<blockquote>
+<p><strong>Pour qui ?</strong> Ce document s'adresse à une personne qui ne connaît <em>rien</em> à
+l'intelligence artificielle appliquée à l'image médicale. Chaque terme technique
+est expliqué en français courant avant d'être utilisé. À la fin, vous comprendrez
+à quoi sert <em>chaque fichier de code</em> du projet et comment ils s'enchaînent.</p>
+<p><strong>Note d'honnêteté importante.</strong> Tout le code décrit ici existe et est testé
+(172 tests automatiques passent, Phase 4 SSL incluse), <strong>mais aucun entraînement réel
+du modèle n'a encore été lancé</strong>. Le projet est une « usine » complète et vérifiée ;
+les données sont désormais converties et le GPU est prêt — il manque le run
+d'entraînement lui-même et le réglage final des boutons.</p>
+</blockquote>
+<hr />
+<h2 id="sommaire">Sommaire</h2>
+<ol>
+<li>Le problème en une page</li>
+<li>Le vocabulaire indispensable (expliqué simplement)</li>
+<li>Vue d'ensemble : le schéma du pipeline</li>
+<li>Les 8 phases du projet, fichier par fichier, fonction par fonction</li>
+<li>Les deux idées les plus astucieuses du code</li>
+<li>État actuel et ce qu'il reste à faire</li>
+<li>Mini-glossaire</li>
+</ol>
+<hr />
+<h2 id="1-le-probleme-en-une-page">1. Le problème en une page</h2>
+<p>Un <strong>IRM cérébral</strong> est une photo en trois dimensions du cerveau (un empilement de
+coupes, comme un pain de mie tranché). Quand un patient a une tumeur, on aimerait que
+l'ordinateur <strong>colorie automatiquement</strong> la tumeur sur l'image : c'est ce qu'on
+appelle la <strong>segmentation</strong>. Le médecin obtient ainsi, sans tout dessiner à la main,
+le volume et la forme exacts de la tumeur.</p>
+<p>Le concours <strong>BraTS 2026</strong> organise une compétition mondiale sur ce sujet. La
+<strong>Task 3</strong>, surnommée <strong>GoAT</strong> (<em>Generalizability Across Tumors</em>, « généralisation à
+travers les tumeurs »), pose un défi précis :</p>
+<blockquote>
+<p>Construire <strong>un seul</strong> programme de segmentation qui fonctionne bien sur <strong>cinq
+types de tumeurs différentes</strong> et sur des images venant d'hôpitaux et de machines
+variés.</p>
+</blockquote>
+<p>Les cinq familles de cas (« <strong>cohortes</strong> ») :</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GLI</code></td>
+<td>gliome de l'adulte (la plus fréquente)</td>
+</tr>
+<tr>
+<td><code>SSA</code></td>
+<td>patients d'Afrique sub-saharienne</td>
+</tr>
+<tr>
+<td><code>MEN</code></td>
+<td>méningiome</td>
+</tr>
+<tr>
+<td><code>MET</code></td>
+<td>métastases</td>
+</tr>
+<tr>
+<td><code>PED</code></td>
+<td>tumeurs pédiatriques (enfants)</td>
+</tr>
+</tbody>
+</table>
+<p>La difficulté : si on entraîne le programme surtout sur des gliomes adultes (les plus
+nombreux), il risque d'être mauvais sur les enfants ou les métastases. <strong>Le but de
+GoAT est justement de ne laisser aucune cohorte derrière.</strong> Le critère qui compte
+n'est donc pas la moyenne, mais <strong>la performance sur la pire cohorte</strong>.</p>
+<p>Trois <strong>règles dures</strong> du concours structurent tout le code :</p>
+<ol>
+<li><strong>Aucune donnée extérieure.</strong> On n'a le droit d'utiliser <em>que</em> les données
+   fournies par GoAT. Utiliser d'autres images, ou même un modèle « pré-réglé » sur
+   une édition précédente de BraTS, entraîne la <strong>disqualification</strong>. On part donc de
+   zéro (« <em>from scratch</em> »).</li>
+<li><strong>Soumission sous forme de conteneur fermé.</strong> À la fin, on livre une « boîte »
+   logicielle (un <em>conteneur Docker</em>) qui doit tourner <strong>sans accès à Internet</strong>, sur
+   une carte graphique précise (24 Go de mémoire), et traiter <strong>tous</strong> les cas de test
+   en <strong>moins de 8 heures</strong>.</li>
+<li><strong>Géométrie préservée.</strong> L'image coloriée rendue doit avoir exactement les mêmes
+   dimensions et le même repère spatial que l'image d'entrée.</li>
+</ol>
+<p>Ces trois règles expliquent pourquoi une grande partie du code n'est pas de
+l'« IA » à proprement parler, mais des <strong>garde-fous</strong> qui empêchent de se faire
+disqualifier.</p>
+<hr />
+<h2 id="2-le-vocabulaire-indispensable-explique-simplement">2. Le vocabulaire indispensable (expliqué simplement)</h2>
+<p><strong>Modalité.</strong> Une IRM n'est pas une seule image : on prend la même tête sous
+plusieurs réglages d'appareil, qui font ressortir des tissus différents. GoAT en
+fournit <strong>quatre</strong> par patient :
+<code>t1n</code>, <code>t1c</code> (avec produit de contraste), <code>t2f</code> (FLAIR), <code>t2w</code>. On les empile comme
+les couches R/V/B d'une photo couleur, sauf qu'ici il y a 4 couches au lieu de 3.</p>
+<p><strong>Label (étiquette).</strong> L'image « réponse » dessinée par des experts, où chaque voxel
+(= pixel 3D) porte un numéro : <code>0</code> = fond, <code>1</code> = nécrose (NCR), <code>2</code> = œdème (ED),
+<code>3</code> = tumeur active (ET). Le modèle apprend à reproduire ce coloriage.</p>
+<p><strong>Région.</strong> Les médecins ne notent pas chaque étiquette séparément mais trois
+<strong>regroupements</strong> cliniquement utiles :
+- <strong>ET</strong> = tumeur active = {3}
+- <strong>TC</strong> (tumor core, cœur tumoral) = {1, 3}
+- <strong>WT</strong> (whole tumor, tumeur entière) = {1, 2, 3}</p>
+<p><strong>nnU-Net v2.</strong> C'est le « moteur » de segmentation que le projet utilise. Pensez-y
+comme à un <strong>logiciel de référence, déjà champion</strong>, capable de se configurer tout
+seul à partir des données. On ne le réécrit pas ; on le <strong>pilote</strong> et on lui ajoute
+nos spécificités. C'est un logiciel externe que le code appelle via des commandes.</p>
+<p><strong>Backbone (« épine dorsale »).</strong> Au cœur de nnU-Net se trouve un réseau de neurones.
+Sa structure interne s'appelle le backbone. Ici c'est <strong>ResEnc-L</strong> (« Residual
+Encoder, Large ») : une version costaude et éprouvée. Le backbone est la <em>forme du
+cerveau artificiel</em> ; il faut ensuite l'entraîner.</p>
+<p><strong>Entraîner / hyperparamètres.</strong> Entraîner = montrer des milliers d'exemples au
+réseau pour qu'il ajuste ses millions de réglages internes. Les <strong>hyperparamètres</strong>
+sont les quelques gros boutons qu'un humain règle <em>avant</em> l'entraînement (vitesse
+d'apprentissage, durée, taille des images traitées d'un coup…). Dans ce projet, ces
+boutons sont volontairement <strong>laissés vides</strong> (<code># SPECIALIST:</code>) tant qu'un spécialiste
+ne les a pas fixés — pour éviter qu'on invente des valeurs au hasard.</p>
+<p><strong>Cross-validation / folds.</strong> Pour mesurer honnêtement la qualité sans tricher, on
+découpe les données en 5 paquets (« folds »). On entraîne 5 fois, à chaque fois en
+gardant un paquet de côté pour tester. C'est la <strong>validation croisée à 5 folds</strong>.</p>
+<p><strong>Leave-one-domain-out (LODO).</strong> Variante propre à GoAT : on entraîne sur 4 cohortes
+et on teste sur la 5e, <em>jamais vue</em>. C'est la mesure la plus directe de la
+généralisation (« sait-il faire sur un type de tumeur qu'il n'a jamais rencontré ? »).</p>
+<p><strong>Dice et HD95.</strong> Deux notes sur 1 (Dice) ou en millimètres (HD95) qui comparent le
+coloriage du modèle à celui des experts. <strong>Dice</strong> mesure le recouvrement (1 = parfait).
+<strong>HD95</strong> mesure l'erreur de contour la plus grande (en mm ; plus petit = mieux).</p>
+<p><strong>Sweep (« balayage »).</strong> Lancer automatiquement <em>beaucoup</em> d'entraînements en faisant
+varier un bouton, pour trouver le meilleur réglage. Avec un supercalculateur (HPC) on
+peut en lancer des dizaines en parallèle.</p>
+<p><strong>TTA, ensemble, post-traitement.</strong> Trois astuces de fin de chaîne pour gagner
+quelques points. <strong>TTA</strong> : on montre l'image aussi en miroir et on moyenne les
+réponses. <strong>Ensemble</strong> : on fait voter plusieurs modèles. <strong>Post-traitement</strong> :
+on nettoie le résultat (ex. effacer de minuscules taches isolées, souvent fausses).</p>
+<p><strong>SSL / semi-supervisé.</strong> Utiliser aussi les images <strong>sans réponse</strong> (non
+étiquetées). Le modèle se sert de ses propres prédictions confiantes comme
+fausses-réponses (« pseudo-labels ») pour continuer à apprendre. C'est la nouveauté
+du projet (Phase 4), désormais codée (voir la section dédiée plus bas).</p>
+<hr />
+<h2 id="3-vue-densemble-le-schema-du-pipeline">3. Vue d'ensemble : le schéma du pipeline</h2>
+<p>Le schéma ci-dessous présente l'enchaînement complet. Chaque rectangle vert est un
+fichier de code <strong>réellement écrit et testé</strong> ; les rectangles en pointillés sont
+encore à faire. Le flux se lit de haut en bas (Phase 0 → Phase 7).</p>
+<div class="figure">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1060" viewBox="0 0 1200 1060" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="1060" fill="#f7f8fa"/>
+
+  <!-- Title -->
+  <text x="40" y="40" font-size="26" font-weight="700" fill="#1c2230">BraTS 2026 — Task 3 (GoAT) · Pipeline du code</text>
+  <text x="40" y="64" font-size="14" fill="#5b6170">Un seul modèle de segmentation qui doit généraliser sur 5 cohortes (GLI · SSA · MEN · MET · PED). Chaque case = 4 IRM → 1 carte de tumeur.</text>
+
+  <!-- CLI cross-cutting banner -->
+  <rect x="40" y="80" width="1120" height="34" rx="6" fill="#eef0f4" stroke="#c7ccd6"/>
+  <text x="56" y="102" font-size="13.5" fill="#3a3f4b"><tspan font-weight="700">cli.py</tspan>  — porte d'entrée en ligne de commande (commandes : tasks · discover · preprocess-mri). Orchestre les modules ci-dessous.</text>
+
+  <!-- ===== Vertical spine arrows ===== -->
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)">
+    <line x1="150" y1="232" x2="150" y2="252"/>
+    <line x1="150" y1="342" x2="150" y2="362"/>
+    <line x1="150" y1="452" x2="150" y2="472"/>
+    <line x1="150" y1="562" x2="150" y2="582"/>
+    <line x1="150" y1="660" x2="150" y2="680"/>
+    <line x1="150" y1="770" x2="150" y2="790"/>
+    <line x1="150" y1="880" x2="150" y2="900"/>
+  </g>
+
+  <!-- ============ PHASE 0 ============ -->
+  <g>
+    <rect x="40" y="128" width="1120" height="104" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="128" width="220" height="104" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="160" font-size="15" font-weight="700" fill="#1c2230">PHASE 0</text>
+    <text x="60" y="180" font-size="12.5" fill="#5b6170">Données &amp;</text>
+    <text x="60" y="196" font-size="12.5" fill="#5b6170">conformité</text>
+    <text x="60" y="218" font-size="11" fill="#8a90a0">« Quelles données ? Sont-</text>
+    <text x="60" y="231" font-size="11" fill="#8a90a0">elles autorisées ? »</text>
+
+    <g filter="url(#soft)">
+      <rect x="278" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="290" y="170" font-size="13" font-weight="700" fill="#1c2230">tasks.py</text>
+      <text x="290" y="188" font-size="10.5" fill="#5b6170">Définit les 5 tâches</text>
+      <text x="290" y="202" font-size="10.5" fill="#5b6170">+ carte de labels</text>
+
+      <rect x="454" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="466" y="170" font-size="13" font-weight="700" fill="#1c2230">discover.py</text>
+      <text x="466" y="188" font-size="10.5" fill="#5b6170">Recense les cas</text>
+      <text x="466" y="202" font-size="10.5" fill="#5b6170">→ manifeste JSONL</text>
+
+      <rect x="630" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="642" y="170" font-size="13" font-weight="700" fill="#1c2230">domains.py</text>
+      <text x="642" y="188" font-size="10.5" fill="#5b6170">Cohorte depuis l'ID</text>
+      <text x="642" y="202" font-size="10.5" fill="#5b6170">(GLI/SSA/MEN…)</text>
+
+      <rect x="806" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="818" y="170" font-size="13" font-weight="700" fill="#1c2230">compliance.py</text>
+      <text x="818" y="188" font-size="10.5" fill="#5b6170">Gate règle GoAT</text>
+      <text x="818" y="202" font-size="10.5" fill="#5b6170">« no external data »</text>
+
+      <rect x="982" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="994" y="170" font-size="13" font-weight="700" fill="#1c2230">provenance.py</text>
+      <text x="994" y="188" font-size="10.5" fill="#5b6170">Empreinte du dataset</text>
+      <text x="994" y="202" font-size="10.5" fill="#5b6170">+ registre (traçabilité)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 1 ============ -->
+  <g>
+    <rect x="40" y="252" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="252" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="284" font-size="15" font-weight="700" fill="#1c2230">PHASE 1</text>
+    <text x="60" y="304" font-size="12.5" fill="#5b6170">Préprocessing &amp;</text>
+    <text x="60" y="320" font-size="12.5" fill="#5b6170">mise au format nnU-Net</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="288" font-size="13" font-weight="700" fill="#1c2230">preprocess.py</text>
+      <text x="314" y="306" font-size="10.5" fill="#5b6170">Normalise l'intensité, recadre</text>
+      <text x="314" y="320" font-size="10.5" fill="#5b6170">la tête, empile les 4 IRM → .npz</text>
+
+      <rect x="566" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="288" font-size="13" font-weight="700" fill="#1c2230">nnunet/convert.py</text>
+      <text x="580" y="306" font-size="10.5" fill="#5b6170">Crée le dataset nnU-Net</text>
+      <text x="580" y="320" font-size="10.5" fill="#5b6170">(régions ET/TC/WT, dataset.json)</text>
+
+      <rect x="832" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="288" font-size="13" font-weight="700" fill="#1c2230">nnunet/splits.py</text>
+      <text x="846" y="306" font-size="10.5" fill="#5b6170">Découpe en folds équilibrés</text>
+      <text x="846" y="320" font-size="10.5" fill="#5b6170">+ leave-one-domain-out</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 2 ============ -->
+  <g>
+    <rect x="40" y="362" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="362" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="394" font-size="15" font-weight="700" fill="#1c2230">PHASE 2</text>
+    <text x="60" y="414" font-size="12.5" fill="#5b6170">Configuration</text>
+    <text x="60" y="430" font-size="12.5" fill="#5b6170">d'entraînement</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="398" font-size="13" font-weight="700" fill="#1c2230">config.py</text>
+      <text x="314" y="416" font-size="10.5" fill="#5b6170">Valide les configs YAML</text>
+      <text x="314" y="430" font-size="10.5" fill="#5b6170">(refuse les stubs vides)</text>
+
+      <rect x="566" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="398" font-size="13" font-weight="700" fill="#1c2230">nnunet/plan.py</text>
+      <text x="580" y="416" font-size="10.5" fill="#5b6170">Choisit le backbone ResEnc-L</text>
+      <text x="580" y="430" font-size="10.5" fill="#5b6170">construit les commandes nnU-Net</text>
+
+      <rect x="832" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="398" font-size="13" font-weight="700" fill="#1c2230">nnunet/trainer.py</text>
+      <text x="846" y="416" font-size="10.5" fill="#5b6170">Trainer GoAT : sampling équilibré</text>
+      <text x="846" y="430" font-size="10.5" fill="#5b6170">+ domain randomization (hooks)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 3 ============ -->
+  <g>
+    <rect x="40" y="472" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="472" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="504" font-size="15" font-weight="700" fill="#1c2230">PHASE 3</text>
+    <text x="60" y="524" font-size="12.5" fill="#5b6170">Entraînement</text>
+    <text x="60" y="540" font-size="12.5" fill="#5b6170">&amp; évaluation</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/metrics.py</text>
+      <text x="314" y="526" font-size="10.5" fill="#5b6170">Calcule Dice + HD95</text>
+      <text x="314" y="540" font-size="10.5" fill="#5b6170">par région (ET/TC/WT)</text>
+
+      <rect x="566" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/report.py</text>
+      <text x="580" y="526" font-size="10.5" fill="#5b6170">Tableaux par cohorte</text>
+      <text x="580" y="540" font-size="10.5" fill="#5b6170">+ « pire cohorte »</text>
+
+      <rect x="832" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/protocol.py</text>
+      <text x="846" y="526" font-size="10.5" fill="#5b6170">Protocole scellé inner-dev /</text>
+      <text x="846" y="540" font-size="10.5" fill="#5b6170">outer-LODO (anti-triche)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 4 ============ -->
+  <g>
+    <rect x="40" y="582" width="1120" height="78" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="582" width="220" height="78" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="612" font-size="15" font-weight="700" fill="#1c2230">PHASE 4</text>
+    <text x="60" y="632" font-size="12.5" fill="#5b6170">Novelty : SSL /</text>
+    <text x="60" y="648" font-size="12.5" fill="#5b6170">semi-supervisé ✓</text>
+
+    <g filter="url(#soft)">
+      <rect x="278" y="592" width="300" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="290" y="612" font-size="12.5" font-weight="700" fill="#1c2230">ssl/__init__.py + configs/ssl.yaml</text>
+      <text x="290" y="628" font-size="10.5" fill="#5b6170">Self-training itératif (≤ 2 rounds) sur les</text>
+      <text x="290" y="642" font-size="10.5" fill="#5b6170">cas non labellisés (1138 cas GoAT découverts)</text>
+
+      <rect x="588" y="592" width="560" height="58" rx="8" fill="#eef6f1" stroke="#2e7d57"/>
+      <text x="600" y="610" font-size="10.5" fill="#3a3f4b"><tspan font-weight="700">Choix de conception :</tspan> multi-round borné à 2 · filtrage confiance par-cas + par-voxel</text>
+      <text x="600" y="625" font-size="10.5" fill="#3a3f4b">(voxels peu sûrs → ignore-label) · entraîne sur folds labellisés + pseudo-labels retenus</text>
+      <text x="600" y="640" font-size="10.5" fill="#3a3f4b">· pool training-only par défaut · gardes anti-fuite (cohorte UNK / validation / outer-LODO)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 5 ============ -->
+  <g>
+    <rect x="40" y="680" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="680" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="712" font-size="15" font-weight="700" fill="#1c2230">PHASE 5</text>
+    <text x="60" y="732" font-size="12.5" fill="#5b6170">Inférence</text>
+    <text x="60" y="748" font-size="12.5" fill="#5b6170">&amp; ensemble</text>
+
+    <g filter="url(#soft)">
+      <rect x="320" y="696" width="360" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="334" y="718" font-size="13" font-weight="700" fill="#1c2230">inference/predict.py</text>
+      <text x="334" y="736" font-size="10.5" fill="#5b6170">Construit les commandes de prédiction</text>
+      <text x="334" y="750" font-size="10.5" fill="#5b6170">(un modèle, puis ensemble de modèles)</text>
+
+      <rect x="700" y="696" width="380" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="714" y="718" font-size="13" font-weight="700" fill="#1c2230">inference/postprocess.py</text>
+      <text x="714" y="736" font-size="10.5" fill="#5b6170">Moyenne TTA, supprime les petits faux</text>
+      <text x="714" y="750" font-size="10.5" fill="#5b6170">positifs (ET-suppression, filtre composantes)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 6 ============ -->
+  <g>
+    <rect x="40" y="790" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="790" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="822" font-size="15" font-weight="700" fill="#1c2230">PHASE 6</text>
+    <text x="60" y="842" font-size="12.5" fill="#5b6170">Packaging du</text>
+    <text x="60" y="858" font-size="12.5" fill="#5b6170">conteneur Docker</text>
+
+    <g filter="url(#soft)">
+      <rect x="320" y="804" width="360" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="334" y="826" font-size="13" font-weight="700" fill="#1c2230">packaging/budget.py</text>
+      <text x="334" y="844" font-size="10.5" fill="#5b6170">Vérifie le budget dur de 8 h</text>
+      <text x="334" y="858" font-size="10.5" fill="#5b6170">d'inférence (règle du challenge)</text>
+
+      <rect x="700" y="804" width="380" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="714" y="826" font-size="13" font-weight="700" fill="#1c2230">packaging/geometry.py</text>
+      <text x="714" y="844" font-size="10.5" fill="#5b6170">Garantit que la sortie a EXACTEMENT</text>
+      <text x="714" y="858" font-size="10.5" fill="#5b6170">la géométrie NIfTI de l'entrée</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 7 ============ -->
+  <g>
+    <rect x="40" y="900" width="1120" height="64" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="900" width="220" height="64" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="930" font-size="15" font-weight="700" fill="#1c2230">PHASE 7</text>
+    <text x="60" y="950" font-size="12.5" fill="#5b6170">Papier LNCS</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="912" width="400" height="40" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+      <text x="314" y="937" font-size="13" font-weight="700" fill="#1c2230">paper/  — court papier 8–10 pages (à rédiger)</text>
+    </g>
+  </g>
+
+  <!-- ============ LEGEND ============ -->
+  <g>
+    <text x="40" y="998" font-size="13" font-weight="700" fill="#1c2230">Légende :</text>
+    <rect x="120" y="986" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="150" y="999" font-size="12" fill="#5b6170">codé &amp; testé (172 tests verts, dont 33 SSL)</text>
+    <rect x="360" y="986" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <text x="390" y="999" font-size="12" fill="#5b6170">stub / à implémenter</text>
+    <rect x="560" y="986" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <text x="590" y="999" font-size="12" fill="#5b6170">à rédiger</text>
+    <text x="700" y="999" font-size="11.5" fill="#8a90a0">⚠ Le code existe et est testé ; les hyperparamètres restent à régler.</text>
+  </g>
+</svg>
+
+</div>
+<p><em>(Le fichier <code>pipeline_brats_task3.svg</code> est dans le même dossier <code>docs/</code>. Le SVG
+s'affiche directement dans GitHub, VS Code et tout navigateur web.)</em></p>
+<p>L'idée générale : on <strong>part des données brutes</strong> (en haut), on les <strong>recense</strong>, on
+les <strong>nettoie</strong>, on les <strong>met au format</strong> du moteur nnU-Net, on <strong>entraîne et
+évalue</strong>, on <strong>améliore</strong> (SSL), on <strong>prédit et nettoie</strong>, puis on <strong>emballe</strong> le tout
+dans le conteneur de soumission (en bas). En travers de tout cela, des <strong>garde-fous</strong>
+vérifient en permanence qu'on respecte les règles du concours.</p>
+<hr />
+<h2 id="4-les-8-phases-fichier-par-fichier-fonction-par-fonction">4. Les 8 phases, fichier par fichier, fonction par fonction</h2>
+<p>Le code vit dans <code>src/brats2026/</code>. Voici chaque module, son rôle, et ce que fait
+chacune de ses fonctions — en langage simple.</p>
+<h3 id="le-chef-dorchestre-clipy">Le chef d'orchestre : <code>cli.py</code></h3>
+<p>C'est la <strong>porte d'entrée</strong> quand on tape une commande dans le terminal
+(<code>brats2026 ...</code>). Il ne calcule rien lui-même : il lit la commande et appelle le bon
+module.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>build_parser</code></td>
+<td>Décrit les commandes disponibles et leurs options.</td>
+</tr>
+<tr>
+<td><code>add_common_args</code></td>
+<td>Ajoute les options communes (<code>--data-root</code>, <code>--task</code>).</td>
+</tr>
+<tr>
+<td><code>cmd_tasks</code></td>
+<td>Commande <code>tasks</code> : affiche la liste des tâches connues.</td>
+</tr>
+<tr>
+<td><code>cmd_discover</code></td>
+<td>Commande <code>discover</code> : lance le recensement des cas.</td>
+</tr>
+<tr>
+<td><code>cmd_preprocess_mri</code></td>
+<td>Commande <code>preprocess-mri</code> : lance le nettoyage des IRM.</td>
+</tr>
+<tr>
+<td><code>main</code></td>
+<td>Point de départ : lit la ligne de commande et exécute.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>À ce jour, seules <strong>3 commandes</strong> sont exposées (<code>tasks</code>, <code>discover</code>,
+<code>preprocess-mri</code>). Les commandes d'entraînement, d'inférence et d'emballage existent
+en code mais ne sont pas encore branchées sur le terminal.</p>
+</blockquote>
+<hr />
+<h3 id="phase-0-donnees-conformite">PHASE 0 — Données &amp; conformité</h3>
+<p><strong>But :</strong> savoir <em>quelles</em> données on a, et vérifier qu'on a le <em>droit</em> de les
+utiliser.</p>
+<h4 id="taskspy-la-fiche-didentite-de-chaque-tache"><code>tasks.py</code> — la fiche d'identité de chaque tâche</h4>
+<p>Décrit, pour chacune des 5 tâches BraTS, où sont les données et comment lire les
+étiquettes. La Task 3 (GoAT) y déclare ses 4 modalités, sa carte de labels
+(<code>NCR=1, ED=2, ET=3</code>) et la règle « aucune donnée externe ».</p>
+<table>
+<thead>
+<tr>
+<th>Élément</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TaskSpec</code></td>
+<td>Petite fiche structurée : nom, modalités d'entrée, étiquette cible, dossiers, carte de labels.</td>
+</tr>
+<tr>
+<td><code>TaskSpec.task_dir</code></td>
+<td>Renvoie le nom de dossier (<code>Task3</code>).</td>
+</tr>
+<tr>
+<td><code>TASKS</code></td>
+<td>Le dictionnaire de toutes les fiches (task1 → task5).</td>
+</tr>
+<tr>
+<td><code>get_task</code></td>
+<td>Retrouve une fiche par son nom (erreur claire si inconnu).</td>
+</tr>
+<tr>
+<td><code>task_base</code></td>
+<td>Calcule le chemin du dossier d'une tâche sur le disque.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="discoverpy-le-recensement-des-cas"><code>discover.py</code> — le recensement des cas</h4>
+<p>Parcourt le disque et dresse la <strong>liste de tous les patients</strong> disponibles, en notant
+pour chacun quels fichiers sont présents ou manquants. Produit un <strong>manifeste</strong> : un
+fichier texte avec une ligne par patient (format JSONL).</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CaseRecord</code></td>
+<td>Fiche d'un cas : identifiant, fichiers d'entrée, cible, manquants.</td>
+</tr>
+<tr>
+<td><code>iter_case_dirs</code></td>
+<td>Liste les sous-dossiers (un par patient).</td>
+</tr>
+<tr>
+<td><code>find_case_file</code></td>
+<td>Retrouve un fichier précis (ex. la modalité <code>t1c</code>).</td>
+</tr>
+<tr>
+<td><code>find_corrected_label</code></td>
+<td>Préfère une étiquette corrigée si elle existe (utile Task 1).</td>
+</tr>
+<tr>
+<td><code>discover_mri_cases</code></td>
+<td>Construit la liste complète des cas IRM.</td>
+</tr>
+<tr>
+<td><code>read_synapse_manifest</code></td>
+<td>Lit le fichier d'inventaire fourni avec les données.</td>
+</tr>
+<tr>
+<td><code>inspect_pathology_shard</code></td>
+<td>(Task 5 seulement) jette un œil dans une archive d'images.</td>
+</tr>
+<tr>
+<td><code>discover_pathology</code></td>
+<td>(Task 5) recense les données d'histologie.</td>
+</tr>
+<tr>
+<td><code>write_jsonl</code></td>
+<td>Écrit le manifeste, une ligne par cas.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="domainspy-retrouver-la-cohorte-de-chaque-patient"><code>domains.py</code> — retrouver la cohorte de chaque patient</h4>
+<p>Astuce gratuite : la cohorte est écrite dans l'identifiant du patient
+(<code>BraTS-GLI-...</code>, <code>BraTS-PED-...</code>). Ce module la lit, ce qui permet ensuite
+d'équilibrer l'entraînement entre cohortes.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COHORTS</code></td>
+<td>La liste officielle : GLI, SSA, MEN, MET, PED.</td>
+</tr>
+<tr>
+<td><code>cohort_from_case_id</code></td>
+<td>Extrait la cohorte d'un identifiant (renvoie <code>UNK</code> si inconnue).</td>
+</tr>
+<tr>
+<td><code>domain_table</code></td>
+<td>Associe chaque patient à sa cohorte.</td>
+</tr>
+<tr>
+<td><code>count_cohorts</code> / <code>CohortCounts</code></td>
+<td>Compte combien de cas par cohorte (et combien d'inconnus).</td>
+</tr>
+</tbody>
+</table>
+<h4 id="compliancepy-le-gendarme-pas-de-triche"><code>compliance.py</code> — le gendarme « pas de triche »</h4>
+<p>Vérifie mécaniquement les règles dont la violation = disqualification. Chaque
+vérification renvoie <code>PASS</code>, <code>FAIL</code> ou <code>UNSURE</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle vérifie</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>check_data_provenance</code></td>
+<td>Tous les cas viennent bien des dossiers GoAT autorisés.</td>
+</tr>
+<tr>
+<td><code>check_no_prior_weights</code></td>
+<td>Aucun modèle « pré-réglé » suspect (mots-clés interdits : <code>pretrained</code>, <code>brats2023</code>…).</td>
+</tr>
+<tr>
+<td><code>check_nas_not_committed</code></td>
+<td>Aucun chemin de données confidentielles n'a fuité dans le dépôt de code.</td>
+</tr>
+<tr>
+<td><code>gate_status</code></td>
+<td>Verdict global : un seul <code>FAIL</code> fait tout échouer.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="provenancepy-le-carnet-de-tracabilite-racine-de-confiance"><code>provenance.py</code> — le carnet de traçabilité (racine de confiance)</h4>
+<p>Prouve que l'entraînement est <em>reproductible</em> et <em>uniquement</em> à base de données GoAT.
+Il calcule une <strong>empreinte</strong> (un code unique, comme une empreinte digitale) du jeu de
+données — <strong>sans jamais lire les pixels</strong> (seulement la taille des fichiers et la
+géométrie d'en-tête, comme l'exige l'accord d'accès aux données).</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>canonical_json</code> / <code>canonical_digest</code></td>
+<td>Transforment des informations en un code stable et reproductible.</td>
+</tr>
+<tr>
+<td><code>case_fingerprint</code></td>
+<td>Empreinte d'un seul cas (à partir de métadonnées, pas de pixels).</td>
+</tr>
+<tr>
+<td><code>dataset_fingerprint</code></td>
+<td>Empreinte de tout le jeu (insensible à l'ordre des cas).</td>
+</tr>
+<tr>
+<td><code>LedgerEntry</code>, <code>make_entry</code>, <code>append_entry</code>, <code>read_ledger</code></td>
+<td>Tiennent un <strong>registre</strong> : une ligne ajoutée par cas, jamais réécrite.</td>
+</tr>
+<tr>
+<td><code>fingerprint_from_ledger</code></td>
+<td>Recalcule l'empreinte à partir du seul registre (utile dans le conteneur hors-ligne).</td>
+</tr>
+<tr>
+<td><code>write_manifest</code></td>
+<td>Écrit un résumé lisible par un humain.</td>
+</tr>
+<tr>
+<td><code>nifti_header_fields</code></td>
+<td>Lit forme/affine d'un IRM <strong>sans charger les pixels</strong>.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Pourquoi tant d'efforts ?</strong> Pour pouvoir affirmer, preuve à l'appui : « ce modèle
+a été entraîné exactement sur ces données-là, et rien d'autre ». C'est l'assurance
+anti-disqualification du projet.</p>
+</blockquote>
+<hr />
+<h3 id="phase-1-preprocessing-mise-au-format-nnu-net">PHASE 1 — Préprocessing &amp; mise au format nnU-Net</h3>
+<p><strong>But :</strong> transformer les IRM brutes en données propres et standardisées.</p>
+<h4 id="preprocesspy-nettoyer-et-standardiser-les-irm"><code>preprocess.py</code> — nettoyer et standardiser les IRM</h4>
+<p>Chaque appareil IRM produit des intensités différentes ; il faut les <strong>harmoniser</strong>
+pour que le modèle ne soit pas perturbé.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>require_mri_dependencies</code></td>
+<td>Vérifie que les bibliothèques d'image sont installées.</td>
+</tr>
+<tr>
+<td><code>robust_normalize</code></td>
+<td>Met toutes les images sur une échelle d'intensité comparable (en ignorant les valeurs extrêmes).</td>
+</tr>
+<tr>
+<td><code>foreground_bbox</code></td>
+<td>Recadre autour de la tête pour enlever le vide noir autour.</td>
+</tr>
+<tr>
+<td><code>load_manifest_records</code></td>
+<td>Relit le manifeste produit en Phase 0.</td>
+</tr>
+<tr>
+<td><code>preprocess_mri_manifest</code></td>
+<td>Orchestre tout : charge, recadre, normalise, empile les 4 modalités, enregistre en <code>.npz</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="nnunetconvertpy-parler-la-langue-de-nnu-net"><code>nnunet/convert.py</code> — parler la langue de nnU-Net</h4>
+<p>nnU-Net exige une organisation de fichiers très précise. Ce module la met en place,
+et déclare les <strong>régions</strong> ET/TC/WT.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CHANNEL_ORDER</code></td>
+<td>Fixe l'ordre des 4 modalités (canaux 0→3).</td>
+</tr>
+<tr>
+<td><code>REGION_LABELS</code> / <code>REGIONS_CLASS_ORDER</code></td>
+<td>Déclarent les régions imbriquées (entraînement « region-based »).</td>
+</tr>
+<tr>
+<td><code>build_dataset_json</code></td>
+<td>Génère le fichier de description exigé par nnU-Net.</td>
+</tr>
+<tr>
+<td><code>LinkOp</code> / <code>ConversionPlan</code></td>
+<td>Décrivent <em>à l'avance</em> les copies de fichiers à faire (testable sans disque).</td>
+</tr>
+<tr>
+<td><code>plan_conversion</code></td>
+<td>Planifie : ne garde un cas que s'il a ses 4 modalités (+ étiquette).</td>
+</tr>
+<tr>
+<td><code>apply_conversion</code></td>
+<td>Exécute le plan via des <strong>liens symboliques</strong> (pour ne pas dupliquer les pixels et préserver la géométrie).</td>
+</tr>
+</tbody>
+</table>
+<h4 id="nnunetsplitspy-decouper-les-donnees-equitablement"><code>nnunet/splits.py</code> — découper les données équitablement</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>domain_balanced_kfold</code></td>
+<td>Crée 5 folds contenant <strong>chacun une part de chaque cohorte</strong> (aucun fold dominé par les gliomes).</td>
+</tr>
+<tr>
+<td><code>leave_one_domain_out</code></td>
+<td>Crée les découpes LODO (entraîner sur 4 cohortes, tester sur la 5e).</td>
+</tr>
+<tr>
+<td><code>write_splits</code></td>
+<td>Enregistre les découpes au format attendu par nnU-Net.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-2-configuration-dentrainement">PHASE 2 — Configuration d'entraînement</h3>
+<p><strong>But :</strong> décider <em>comment</em> on entraîne, sans inventer les chiffres au hasard.</p>
+<h4 id="configpy-le-validateur-de-configuration"><code>config.py</code> — le validateur de configuration</h4>
+<p>Les réglages d'entraînement vivent dans des fichiers YAML (<code>configs/train.yaml</code>,
+<code>configs/infer.yaml</code>). Ce module <strong>refuse</strong> une config tant qu'elle n'est pas
+complète : tous les boutons remplis <strong>et</strong> une « carte d'identité » (provenance)
+présente.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>make_template</code></td>
+<td>Crée un modèle de config <strong>volontairement invalide</strong> (tout à vide).</td>
+</tr>
+<tr>
+<td><code>validate_provenance_header</code></td>
+<td>Vérifie que la carte d'identité (commit, empreinte, graine aléatoire, date…) est remplie.</td>
+</tr>
+<tr>
+<td><code>validate_config</code> / <code>assert_valid_config</code></td>
+<td>Disent si la config est complète ; sinon nomment précisément ce qui manque.</td>
+</tr>
+<tr>
+<td><code>check_fingerprint_binding</code></td>
+<td>Vérifie que la config a bien été réglée sur <strong>les mêmes données</strong> que celles livrées.</td>
+</tr>
+<tr>
+<td><code>load_config</code> / <code>dump_config</code></td>
+<td>Lisent/écrivent les fichiers YAML.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>À noter :</strong> les deux fichiers <code>configs/train.yaml</code> et <code>configs/infer.yaml</code> sont
+aujourd'hui des modèles vides (tout à <code>null</code>) ; le validateur les <strong>rejette
+exprès</strong> tant que le spécialiste ne les a pas remplis.</p>
+</blockquote>
+<h4 id="nnunetplanpy-choisir-le-backbone-et-preparer-les-commandes"><code>nnunet/plan.py</code> — choisir le backbone et préparer les commandes</h4>
+<p>C'est ici qu'est <strong>inscrit le choix du backbone</strong> : <strong>ResEnc-L</strong>, configuration
+<code>3d_fullres</code> (traitement en 3D pleine résolution).</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RESENC_L_PLANNER</code>, <code>RESENC_L_PLANS</code>, <code>DEFAULT_CONFIG</code>, <code>GOAT_TRAINER</code></td>
+<td>Constantes : le backbone et le trainer choisis.</td>
+</tr>
+<tr>
+<td><code>nnunet_env</code></td>
+<td>Indique à nnU-Net où écrire ses fichiers (sous <code>work/</code>, jamais sur le NAS en lecture seule).</td>
+</tr>
+<tr>
+<td><code>plan_and_preprocess_command</code></td>
+<td>Fabrique la commande qui prépare les données pour ResEnc-L.</td>
+</tr>
+<tr>
+<td><code>train_command</code></td>
+<td>Fabrique la commande d'entraînement d'<strong>un</strong> fold.</td>
+</tr>
+<tr>
+<td><code>kfold_train_commands</code></td>
+<td>Fabrique les commandes des <strong>5</strong> folds (à lancer en parallèle sur le HPC).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Ce module <strong>ne lance rien</strong> : il <em>écrit les commandes</em>. C'est ce qui le rend
+testable sans carte graphique.</p>
+</blockquote>
+<h4 id="nnunettrainerpy-le-trainer-maison-goat"><code>nnunet/trainer.py</code> — le trainer « maison » GoAT</h4>
+<p>Définit <code>nnUNetTrainerGoAT</code>, une version personnalisée du trainer de nnU-Net qui
+ajoute les deux ingrédients clés de la généralisation :
+1. <strong>sampling équilibré par cohorte</strong> (montrer autant chaque type de tumeur),
+2. <strong>domain randomization</strong> (varier artificiellement contraste/bruit pour résister aux
+   différences d'appareils).</p>
+<table>
+<thead>
+<tr>
+<th>Élément</th>
+<th>Ce qu'il fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SPECIALIST_HOOKS</code></td>
+<td>La liste des <strong>12 boutons</strong> que le spécialiste doit régler.</td>
+</tr>
+<tr>
+<td><code>GoATTrainerConfig</code></td>
+<td>La fiche de réglages ; chaque bouton vaut <code>None</code> (= « non décidé ») par défaut.</td>
+</tr>
+<tr>
+<td><code>unset_hooks</code></td>
+<td>Liste les boutons encore non réglés.</td>
+</tr>
+<tr>
+<td><code>assert_configured</code></td>
+<td><strong>Refuse de lancer</strong> un entraînement tant qu'un bouton manque.</td>
+</tr>
+<tr>
+<td><code>domain_sampling_weights</code></td>
+<td>Calcule les poids de tirage par cohorte ; un curseur <code>alpha</code> va de « fréquence naturelle » (0) à « parfaitement égal » (1).</td>
+</tr>
+<tr>
+<td><code>nnUNetTrainerGoAT</code></td>
+<td>Le trainer concret (n'existe que si nnU-Net est installé).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Les 12 boutons (<code>initial_lr</code>, <code>num_epochs</code>, <code>batch_size</code>, <code>domain_sampling_alpha</code>,
+magnitudes de domain randomization, poids de la fonction de coût…) sont les
+<strong>leviers de performance</strong> à explorer par sweeps.</p>
+</blockquote>
+<hr />
+<h3 id="phase-3-entrainement-evaluation">PHASE 3 — Entraînement &amp; évaluation</h3>
+<p><strong>But :</strong> mesurer la qualité, cohorte par cohorte, <strong>sans se mentir</strong>.</p>
+<h4 id="evaluationmetricspy-calculer-les-notes"><code>evaluation/metrics.py</code> — calculer les notes</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validate_labels</code></td>
+<td>Vérifie que le coloriage ne contient que des étiquettes permises.</td>
+</tr>
+<tr>
+<td><code>region_mask</code></td>
+<td>Fabrique le masque d'une région (ET, TC ou WT).</td>
+</tr>
+<tr>
+<td><code>dice_coefficient</code></td>
+<td>La note de recouvrement (1 = parfait).</td>
+</tr>
+<tr>
+<td><code>hausdorff95</code> (+ <code>_surface_points</code>, <code>_directed_percentile</code>)</td>
+<td>L'erreur de contour en mm (HD95).</td>
+</tr>
+<tr>
+<td><code>region_scores</code></td>
+<td>Calcule Dice + HD95 pour les 3 régions (mode « classique »).</td>
+</tr>
+<tr>
+<td><code>connected_components</code></td>
+<td>Repère les « taches » distinctes dans un masque.</td>
+</tr>
+<tr>
+<td><code>lesion_wise_dice</code></td>
+<td>Note <strong>par lésion</strong> : pénalise les fausses taches inventées (mode « lesion-wise »).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Le code calcule <strong>deux familles de notes</strong> (« classique » et « par lésion ») car on
+ne sait pas encore laquelle le portail officiel utilisera. On ne tranche pas à la
+place du concours.</p>
+</blockquote>
+<h4 id="evaluationreportpy-agreger-en-tableaux-lisibles"><code>evaluation/report.py</code> — agréger en tableaux lisibles</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CaseScore</code></td>
+<td>Toutes les notes d'un cas, les deux familles côte à côte.</td>
+</tr>
+<tr>
+<td><code>hd95_summary</code></td>
+<td>Moyenne le HD95 en <strong>comptant à part les « ratés complets »</strong> (sinon un seul raté ruinerait la moyenne).</td>
+</tr>
+<tr>
+<td><code>per_cohort_table</code></td>
+<td>Tableau des notes <strong>par cohorte</strong>.</td>
+</tr>
+<tr>
+<td><code>worst_cohort</code></td>
+<td>Isole <strong>la pire cohorte</strong> — <em>le</em> chiffre qui compte pour GoAT.</td>
+</tr>
+<tr>
+<td><code>leave_one_domain_out_table</code></td>
+<td>Tableau LODO (une ligne par cohorte tenue à l'écart).</td>
+</tr>
+<tr>
+<td><code>write_report</code></td>
+<td>Enregistre le rapport en JSON.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="evaluationprotocolpy-le-protocole-anti-triche-scelle"><code>evaluation/protocol.py</code> — le protocole anti-triche scellé</h4>
+<p>C'est la pièce la plus astucieuse (détaillée en §5). Elle sépare <em>mécaniquement</em>
+deux choses : la zone où l'on a le droit de <strong>régler</strong> le modèle, et la mesure finale
+de généralisation qu'on n'a le droit de <strong>regarder qu'une seule fois</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>score_inner_dev</code></td>
+<td>La surface de réglage (5 folds), consultable autant qu'on veut.</td>
+</tr>
+<tr>
+<td><code>seal_config</code></td>
+<td>« Scelle » la config choisie en enregistrant son empreinte (écriture unique).</td>
+</tr>
+<tr>
+<td><code>reveal_outer_lodo</code></td>
+<td>Révèle la note finale LODO <strong>une seule fois</strong>, et seulement si la config n'a pas bougé.</td>
+</tr>
+<tr>
+<td><code>read_sealed_config</code></td>
+<td>Relit l'empreinte scellée.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-4-novelty-ssl-semi-supervise-implementee">PHASE 4 — Novelty : SSL / semi-supervisé ✓ <em>(implémentée)</em></h3>
+<h4 id="ssl__init__py-configssslyaml"><code>ssl/__init__.py</code> + <code>configs/ssl.yaml</code></h4>
+<p><strong>L'idée en une phrase.</strong> Sur les données fournies, <strong>1138 cas n'ont pas de réponse</strong>
+(pas de coloriage de référence). Plutôt que de les jeter, on s'en sert : un premier
+modèle (le <em>teacher</em>, « professeur ») colorie ces cas, on <strong>garde les coloriages les plus
+sûrs</strong> comme s'ils étaient vrais (des « pseudo-réponses »), et on réentraîne un second
+modèle (le <em>student</em>, « élève ») sur l'ensemble. C'est l'<strong>auto-apprentissage</strong>
+(<em>self-training</em>), la contribution originale du projet.</p>
+<p>Ce module ne lance pas le GPU lui-même : comme le reste du code, il <strong>fabrique des
+commandes et une configuration</strong> (les vrais réglages chiffrés vivent dans
+<code>configs/ssl.yaml</code>, propriété de l'« IA spécialiste »). Il est couvert par <strong>33 tests</strong>.</p>
+<p><strong>Les questions qui se sont posées, et les réponses retenues.</strong> Concevoir cette phase a
+demandé de trancher plusieurs choix ; ils ont été décidés par le « conseil » d'agents
+(spécialiste IA + gardien de conformité) puis validés :</p>
+<ul>
+<li><strong>Un seul passage, ou plusieurs ?</strong> → <strong>plusieurs, mais bornés à 2 rounds</strong>
+  (« multi-round »). Au 2ᵉ tour, le modèle déjà amélioré recolorie les cas non
+  étiquetés : utile surtout pour les cohortes les plus difficiles (SSA, PED, MET).
+  Au-delà de 2, le modèle risque de <strong>renforcer ses propres erreurs</strong>. Le nombre de tours
+  reste un bouton réglable (<code>n_rounds</code>, mettable à 1 si le temps de calcul manque).</li>
+<li><strong>Sur quelles données s'entraîne le modèle ?</strong> → sur les <strong>folds (paquets) étiquetés
+  habituels</strong> <em>plus</em> les pseudo-réponses retenues, mélangés selon un <strong>ratio
+  étiquetés/pseudo</strong> (réglable, ~2 pour 1) pour que les vraies réponses restent
+  dominantes.</li>
+<li><strong>Comment décider qu'une pseudo-réponse est « assez sûre » ?</strong> → un filtre à <strong>deux
+  niveaux</strong> : <em>par voxel</em> (chaque point 3D peu sûr est marqué « à ignorer » et n'entre pas
+  dans l'apprentissage) <strong>et</strong> <em>par cas</em> (un patient entier est rejeté s'il est trop
+  incertain, presque vide, ou au contraire « halluciné »). On ajoute un <strong>quota par
+  cohorte</strong> pour ne pas réinjecter surtout des gliomes adultes (majoritaires).</li>
+<li><strong>Quels cas non étiquetés a-t-on le droit d'utiliser ?</strong> → <strong>uniquement ceux du jeu
+  d'entraînement</strong> par défaut (bouton <code>allow_validation_pool</code> = faux). Le règlement
+  n'autorise que les données fournies par GoAT ; le jeu de validation en fait partie, mais
+  on l'exclut par prudence (éviter toute fuite vers le classement). Des <strong>garde-fous
+  automatiques</strong> refusent tout cas de cohorte inconnue (<code>UNK</code>), tout chevauchement avec le
+  jeu de validation, et tout contact avec le pli « scellé » outer-LODO.</li>
+</ul>
+<blockquote>
+<p><strong>À retenir :</strong> aucune donnée extérieure, aucun modèle pré-entraîné d'un BraTS
+précédent — tout part de zéro, sur les seules données GoAT. C'est la règle dure du
+challenge, vérifiée par les garde-fous du module.</p>
+</blockquote>
+<hr />
+<h3 id="phase-5-inference-ensemble">PHASE 5 — Inférence &amp; ensemble</h3>
+<p><strong>But :</strong> produire les coloriages finaux et les nettoyer.</p>
+<h4 id="inferencepredictpy-fabriquer-les-commandes-de-prediction"><code>inference/predict.py</code> — fabriquer les commandes de prédiction</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>predict_command</code></td>
+<td>Commande pour faire prédire <strong>un</strong> modèle (option pour couper le TTA si le temps presse).</td>
+</tr>
+<tr>
+<td><code>predict_ensemble_commands</code></td>
+<td>Une commande par membre de l'<strong>ensemble</strong> (chacun écrit dans son dossier).</td>
+</tr>
+</tbody>
+</table>
+<h4 id="inferencepostprocesspy-nettoyer-le-resultat"><code>inference/postprocess.py</code> — nettoyer le résultat</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>merge_tta</code></td>
+<td>Moyenne les prédictions des différentes vues (TTA miroir).</td>
+</tr>
+<tr>
+<td><code>connected_component_filter</code></td>
+<td>Supprime les taches plus petites qu'un seuil.</td>
+</tr>
+<tr>
+<td><code>et_suppression</code></td>
+<td>Reclasse les <strong>minuscules taches de tumeur active</strong> (souvent de faux positifs) en nécrose.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Le seuil de taille n'a <strong>aucune valeur par défaut</strong> : c'est un bouton spécialiste,
+fixé dans <code>configs/infer.yaml</code>.</p>
+</blockquote>
+<hr />
+<h3 id="phase-6-packaging-du-conteneur-docker">PHASE 6 — Packaging du conteneur Docker</h3>
+<p><strong>But :</strong> vérifier que la « boîte » de soumission respecte les règles dures.</p>
+<h4 id="packagingbudgetpy-le-chronometre-des-8-heures"><code>packaging/budget.py</code> — le chronomètre des 8 heures</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>estimate_total_seconds</code></td>
+<td>Estime le temps total (temps par cas × nombre de cas).</td>
+</tr>
+<tr>
+<td><code>fits_budget</code> / <code>headroom_seconds</code></td>
+<td>Dit si ça rentre dans 8 h, et la marge restante.</td>
+</tr>
+<tr>
+<td><code>assert_within_budget</code></td>
+<td><strong>Bloque</strong> si le temps projeté dépasse 8 h, en chiffrant le dépassement.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>BUDGET_HOURS = 8</code> est une <strong>constante</strong> (règle du concours), pas un bouton réglable.</p>
+</blockquote>
+<h4 id="packaginggeometrypy-le-gardien-de-la-geometrie"><code>packaging/geometry.py</code> — le gardien de la géométrie</h4>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Ce qu'elle fait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geometry_matches</code></td>
+<td>Vérifie que la sortie a <strong>exactement</strong> la même forme et le même repère que l'entrée.</td>
+</tr>
+<tr>
+<td><code>assert_same_geometry</code></td>
+<td><strong>Bloque</strong> et nomme précisément l'écart (forme ? repère ?) en cas de problème.</td>
+</tr>
+<tr>
+<td><code>read_geometry</code></td>
+<td>Lit forme/repère d'un IRM <strong>sans charger les pixels</strong>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-7-papier-lncs">PHASE 7 — Papier LNCS</h3>
+<p>Le dossier <code>paper/</code> accueillera le court article scientifique obligatoire (8–10
+pages) décrivant la méthode et les résultats par cohorte. <strong>À rédiger</strong> une fois de
+vrais résultats disponibles.</p>
+<hr />
+<h2 id="5-les-deux-idees-les-plus-astucieuses-du-code">5. Les deux idées les plus astucieuses du code</h2>
+<h3 id="a-lempreinte-du-dataset-provenancepy-configpy">A) L'empreinte du dataset (<code>provenance.py</code> + <code>config.py</code>)</h3>
+<p>Problème : comment prouver qu'on n'a pas triché et que tout est reproductible ?
+Solution : on calcule une <strong>empreinte unique</strong> du jeu de données (à partir de
+métadonnées seulement, jamais des pixels). Cette empreinte est :
+- <strong>insensible à l'ordre</strong> des cas (on les trie avant de calculer),
+- <strong>sans horloge ni chemin machine</strong> (donc recalculable à l'identique plus tard,
+  même dans le conteneur hors-ligne).</p>
+<p>Ensuite, <code>config.py</code> <strong>exige</strong> que chaque fichier de réglages porte cette empreinte
+(<code>check_fingerprint_binding</code>). Conséquence : impossible de régler le modèle sur un jeu
+de données et d'en livrer un autre — les empreintes ne correspondraient plus.</p>
+<h3 id="b-le-protocole-scelle-inner-dev-outer-lodo-evaluationprotocolpy">B) Le protocole scellé inner-dev / outer-LODO (<code>evaluation/protocol.py</code>)</h3>
+<p>Problème classique en IA : si on <strong>regarde</strong> la note finale puis qu'on retouche le
+modèle pour l'améliorer, on finit par « apprendre par cœur » le test et on se ment sur
+la vraie performance.</p>
+<p>La parade, codée en dur :
+1. <strong>Zone de réglage libre</strong> (<code>score_inner_dev</code>, sur 5 folds) : on peut la consulter
+   autant qu'on veut. Elle ne contient <strong>aucune</strong> information sur la note finale.
+2. <strong>Note finale scellée</strong> (<code>reveal_outer_lodo</code>, la vraie mesure de généralisation) :
+   - on doit d'abord <strong>figer</strong> la config avec <code>seal_config</code> (qui enregistre son
+     empreinte et <strong>refuse d'être ré-écrit</strong>) ;
+   - la note finale ne peut être révélée <strong>qu'une seule fois</strong> (un fichier-drapeau
+     <code>.outer_sealed</code> empêche tout second coup d'œil) ;
+   - et seulement si la config n'a <strong>pas changé</strong> depuis le scellage.</p>
+<p>Autrement dit : <strong>on ne peut pas regarder deux fois, ni retoucher après avoir vu.</strong>
+C'est une garantie d'honnêteté scientifique inscrite dans le code lui-même.</p>
+<hr />
+<h2 id="6-etat-actuel-et-ce-quil-reste-a-faire">6. État actuel et ce qu'il reste à faire</h2>
+<p><strong>Ce qui est fait</strong> (et couvert par 172 tests automatiques) :
+- toute la chaîne de <strong>préparation des données</strong> (Phases 0–1) ;
+- la <strong>structure</strong> d'entraînement, d'évaluation, d'inférence et d'emballage
+  (Phases 2–3, 5–6) ;
+- la <strong>Phase 4 (SSL / auto-apprentissage)</strong>, désormais codée (+33 tests) avec sa
+  configuration <code>configs/ssl.yaml</code> ;
+- tous les <strong>garde-fous</strong> (conformité, traçabilité, budget 8 h, géométrie, protocole
+  anti-triche).</p>
+<p><strong>Ce qui manque</strong> :
+- <strong>L'entraînement réel</strong> : la machine est prête (GPU RTX 3090 24 Go, <code>torch</code>+<code>nnU-Net</code>
+  installés, données converties en <code>Dataset501_BraTSGoAT</code>), mais aucun run n'a encore
+  tourné — un <strong>smoke-test 1 fold / ~5-10 epochs</strong> est la prochaine étape.
+- <strong>Le réglage des boutons</strong> <code># SPECIALIST:</code> d'entraînement (<code>configs/train.yaml</code>).
+- <strong>Brancher</strong> entraînement/inférence/emballage sur la ligne de commande.
+- <strong>Finaliser</strong> le conteneur Docker et <strong>rédiger</strong> le papier.</p>
+<p><strong>Deux constats récents importants :</strong>
+- <strong>Métrique du classement :</strong> le leaderboard officiel BraTS 2026 classe sur <strong>Dice +
+  NSD</strong> (<em>Normalized Surface Distance</em>, tolérances 0,5 et 1,0 mm), <strong>pas HD95</strong>. Notre code
+  calcule aujourd'hui HD95 ; il faudra <strong>ajouter le NSD</strong> pour coller au classement réel.
+- <strong>Cohortes invisibles sur les données 2024 :</strong> les cas fournis ont des identifiants
+  <code>BraTS-GoAT-NNNNN</code> qui <strong>n'encodent pas la cohorte</strong> (GLI/SSA/MEN/MET/PED). Tant que les
+  données 2026 (préfixes <code>BraTS-&lt;cohorte&gt;-…</code>) ne sont pas là, le <strong>rééquilibrage par
+  cohorte</strong> et le <strong>leave-one-domain-out</strong> ne peuvent pas s'appuyer sur l'identifiant.</p>
+<p><strong>Image mentale juste :</strong> l'usine est construite, inspectée et certifiée conforme ; la
+matière première est chargée et le moteur (GPU) tourne. Il reste à tourner les molettes
+(hyperparamètres) et à appuyer pour de bon sur le bouton « marche » (l'entraînement).</p>
+<hr />
+<h2 id="7-mini-glossaire">7. Mini-glossaire</h2>
+<ul>
+<li><strong>Voxel</strong> : un pixel en 3D.</li>
+<li><strong>Segmentation</strong> : colorier automatiquement les zones d'intérêt (ici la tumeur).</li>
+<li><strong>Modalité</strong> : une variante de l'IRM (t1n, t1c, t2f, t2w).</li>
+<li><strong>Cohorte / domaine</strong> : une famille de cas (GLI, SSA, MEN, MET, PED).</li>
+<li><strong>Backbone</strong> : la structure interne du réseau de neurones (ici ResEnc-L).</li>
+<li><strong>nnU-Net v2</strong> : le moteur de segmentation de référence, piloté par ce projet.</li>
+<li><strong>Hyperparamètre</strong> : un gros bouton réglé avant l'entraînement.</li>
+<li><strong>Fold</strong> : un des paquets de la validation croisée.</li>
+<li><strong>LODO</strong> : entraîner sur 4 cohortes, tester sur la 5e jamais vue.</li>
+<li><strong>Dice / HD95</strong> : notes de recouvrement / d'erreur de contour.</li>
+<li><strong>TTA / ensemble / post-traitement</strong> : astuces de fin de chaîne pour gagner des
+  points.</li>
+<li><strong>SSL</strong> : apprendre aussi à partir des images sans réponse.</li>
+<li><strong>Sweep</strong> : balayer automatiquement les réglages pour trouver le meilleur.</li>
+<li><strong>Empreinte (fingerprint)</strong> : code unique prouvant <em>quelles</em> données ont servi.</li>
+<li><strong>Stub</strong> : fichier-coquille, structure posée mais pas encore remplie.</li>
+</ul>
+<hr />
+<h2 id="annexe-les-12-hooks-specialist-dentrainement">Annexe — Les 12 hooks <code># SPECIALIST:</code> d'entraînement</h2>
+<p>Ce sont les 12 « boutons » d'entraînement laissés <strong>volontairement vides</strong> dans le
+code (<code>GoATTrainerConfig</code>, fichier <code>nnunet/trainer.py</code>) et listés dans
+<code>SPECIALIST_HOOKS</code>. Tant que l'un d'eux vaut <code>None</code>, <code>assert_configured</code> <strong>refuse de
+lancer</strong> l'entraînement. La colonne « valeur par défaut » est la valeur de référence
+de nnU-Net <strong>notée en commentaire</strong> dans le code, <strong>jamais appliquée en silence</strong> :
+elle sert seulement de point de départ raisonnable pour les sweeps.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Hook</th>
+<th>À quoi ça sert (en clair)</th>
+<th>Défaut nnU-Net (référence)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>initial_lr</code></td>
+<td>Vitesse d'apprentissage initiale : à quelle vitesse le réseau ajuste ses réglages. Trop haut = instable ; trop bas = trop lent.</td>
+<td><code>1e-2</code> (0,01)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>weight_decay</code></td>
+<td>Frein anti-surapprentissage : empêche les réglages internes de devenir trop gros.</td>
+<td><code>3e-5</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>num_epochs</code></td>
+<td>Nombre de passages complets sur les données. Plus = mieux mais plus long (et borné par les 8 h).</td>
+<td><code>1000</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>batch_size</code></td>
+<td>Combien d'images traitées d'un coup. Limité par la mémoire GPU (carte A10G 24 Go).</td>
+<td>déduit par le planificateur</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>patch_size</code></td>
+<td>Taille du morceau d'image 3D traité à la fois (on ne traite pas tout le cerveau d'un coup).</td>
+<td>déduit par le planificateur</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>oversample_foreground_percent</code></td>
+<td>Part des morceaux qui doivent contenir de la tumeur (sinon le réseau ne verrait que du tissu sain).</td>
+<td><code>0.33</code> (33 %)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>loss_dice_weight</code></td>
+<td>Poids de la composante « recouvrement » dans la note d'erreur d'entraînement.</td>
+<td>spécifique au projet</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>loss_ce_weight</code></td>
+<td>Poids de la composante « classification par voxel » dans la note d'erreur.</td>
+<td>spécifique au projet</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>domain_sampling_alpha</code></td>
+<td><strong>Levier #1 de généralisation.</strong> Curseur d'équilibrage entre cohortes : <code>0</code> = on respecte les proportions réelles (beaucoup de GLI) ; <code>1</code> = on tire chaque cohorte à parts égales.</td>
+<td>à fixer</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>domain_rand_intensity_sigma</code></td>
+<td>Force du bruit ajouté sur l'<strong>intensité</strong> (simuler des appareils différents).</td>
+<td>à fixer</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>domain_rand_contrast_range</code></td>
+<td>Plage de variation du <strong>contraste</strong> (correction gamma) appliquée aléatoirement.</td>
+<td>à fixer</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>domain_rand_noise_sigma</code></td>
+<td>Force du <strong>bruit additif</strong> ajouté aux images (robustesse).</td>
+<td>à fixer</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Les hooks <strong>1 à 8</strong> sont les réglages d'entraînement « classiques » de tout réseau.
+Les hooks <strong>9 à 12</strong> sont la <strong>spécificité GoAT</strong> : ils servent directement la
+généralisation entre cohortes et entre appareils, et ce sont eux qui justifient les
+sweeps prioritaires sur le HPC (notamment le hook 9, <code>domain_sampling_alpha</code>, et le
+trio 10–12 de domain randomization).</p>
+</blockquote>
+<h3 id="rappel-les-5-hooks-dinference-configsinferyaml">Rappel : les 5 hooks d'inférence (<code>configs/infer.yaml</code>)</h3>
+<p>En plus des 12 hooks d'entraînement, 5 boutons concernent la <strong>prédiction finale</strong>
+(listés dans <code>INFER_HOOK_KEYS</code>, fichier <code>config.py</code>) :</p>
+<table>
+<thead>
+<tr>
+<th>Hook</th>
+<th>À quoi ça sert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tta_axes</code></td>
+<td>Les axes de mise en miroir pour le TTA (ex. <code>[0,1,2]</code>, ou <code>[]</code> pour désactiver et gagner du temps).</td>
+</tr>
+<tr>
+<td><code>ensemble_members</code></td>
+<td>La liste des modèles à faire voter ensemble.</td>
+</tr>
+<tr>
+<td><code>ensemble_weights</code></td>
+<td>Le poids de vote de chaque modèle.</td>
+</tr>
+<tr>
+<td><code>et_suppression_min_voxels</code></td>
+<td>Taille en dessous de laquelle une tache de tumeur active est effacée (faux positif).</td>
+</tr>
+<tr>
+<td><code>cc_min_voxels</code></td>
+<td>Taille minimale d'une tache pour être gardée (filtre de petites composantes).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Au total, <strong>17 boutons</strong> (12 + 5) sont à régler avant une vraie soumission. Aucun
+n'a de valeur appliquée par défaut : c'est un choix de conception pour qu'aucun
+chiffre ne soit « inventé » sans décision explicite.</p>
+</blockquote>
+<hr />
+<p><em>Document généré à partir de la lecture intégrale des 24 modules de
+<code>src/brats2026/</code>. Pour aller plus loin : <code>CLAUDE.md</code> (guide projet),
+<code>ETAT_PROJET.md</code> (avancement), <code>PIPELINE_nnUNetv2_Task3.md</code> (stratégie détaillée).</em></p>
+</body></html>

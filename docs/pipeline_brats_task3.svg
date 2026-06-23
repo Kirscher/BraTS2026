@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1060" viewBox="0 0 1200 1060" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="1060" fill="#f7f8fa"/>
+
+  <!-- Title -->
+  <text x="40" y="40" font-size="26" font-weight="700" fill="#1c2230">BraTS 2026 — Task 3 (GoAT) · Pipeline du code</text>
+  <text x="40" y="64" font-size="14" fill="#5b6170">Un seul modèle de segmentation qui doit généraliser sur 5 cohortes (GLI · SSA · MEN · MET · PED). Chaque case = 4 IRM → 1 carte de tumeur.</text>
+
+  <!-- CLI cross-cutting banner -->
+  <rect x="40" y="80" width="1120" height="34" rx="6" fill="#eef0f4" stroke="#c7ccd6"/>
+  <text x="56" y="102" font-size="13.5" fill="#3a3f4b"><tspan font-weight="700">cli.py</tspan>  — porte d'entrée en ligne de commande (commandes : tasks · discover · preprocess-mri). Orchestre les modules ci-dessous.</text>
+
+  <!-- ===== Vertical spine arrows ===== -->
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)">
+    <line x1="150" y1="232" x2="150" y2="252"/>
+    <line x1="150" y1="342" x2="150" y2="362"/>
+    <line x1="150" y1="452" x2="150" y2="472"/>
+    <line x1="150" y1="562" x2="150" y2="582"/>
+    <line x1="150" y1="660" x2="150" y2="680"/>
+    <line x1="150" y1="770" x2="150" y2="790"/>
+    <line x1="150" y1="880" x2="150" y2="900"/>
+  </g>
+
+  <!-- ============ PHASE 0 ============ -->
+  <g>
+    <rect x="40" y="128" width="1120" height="104" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="128" width="220" height="104" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="160" font-size="15" font-weight="700" fill="#1c2230">PHASE 0</text>
+    <text x="60" y="180" font-size="12.5" fill="#5b6170">Données &amp;</text>
+    <text x="60" y="196" font-size="12.5" fill="#5b6170">conformité</text>
+    <text x="60" y="218" font-size="11" fill="#8a90a0">« Quelles données ? Sont-</text>
+    <text x="60" y="231" font-size="11" fill="#8a90a0">elles autorisées ? »</text>
+
+    <g filter="url(#soft)">
+      <rect x="278" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="290" y="170" font-size="13" font-weight="700" fill="#1c2230">tasks.py</text>
+      <text x="290" y="188" font-size="10.5" fill="#5b6170">Définit les 5 tâches</text>
+      <text x="290" y="202" font-size="10.5" fill="#5b6170">+ carte de labels</text>
+
+      <rect x="454" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="466" y="170" font-size="13" font-weight="700" fill="#1c2230">discover.py</text>
+      <text x="466" y="188" font-size="10.5" fill="#5b6170">Recense les cas</text>
+      <text x="466" y="202" font-size="10.5" fill="#5b6170">→ manifeste JSONL</text>
+
+      <rect x="630" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="642" y="170" font-size="13" font-weight="700" fill="#1c2230">domains.py</text>
+      <text x="642" y="188" font-size="10.5" fill="#5b6170">Cohorte depuis l'ID</text>
+      <text x="642" y="202" font-size="10.5" fill="#5b6170">(GLI/SSA/MEN…)</text>
+
+      <rect x="806" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="818" y="170" font-size="13" font-weight="700" fill="#1c2230">compliance.py</text>
+      <text x="818" y="188" font-size="10.5" fill="#5b6170">Gate règle GoAT</text>
+      <text x="818" y="202" font-size="10.5" fill="#5b6170">« no external data »</text>
+
+      <rect x="982" y="148" width="166" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="994" y="170" font-size="13" font-weight="700" fill="#1c2230">provenance.py</text>
+      <text x="994" y="188" font-size="10.5" fill="#5b6170">Empreinte du dataset</text>
+      <text x="994" y="202" font-size="10.5" fill="#5b6170">+ registre (traçabilité)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 1 ============ -->
+  <g>
+    <rect x="40" y="252" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="252" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="284" font-size="15" font-weight="700" fill="#1c2230">PHASE 1</text>
+    <text x="60" y="304" font-size="12.5" fill="#5b6170">Préprocessing &amp;</text>
+    <text x="60" y="320" font-size="12.5" fill="#5b6170">mise au format nnU-Net</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="288" font-size="13" font-weight="700" fill="#1c2230">preprocess.py</text>
+      <text x="314" y="306" font-size="10.5" fill="#5b6170">Normalise l'intensité, recadre</text>
+      <text x="314" y="320" font-size="10.5" fill="#5b6170">la tête, empile les 4 IRM → .npz</text>
+
+      <rect x="566" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="288" font-size="13" font-weight="700" fill="#1c2230">nnunet/convert.py</text>
+      <text x="580" y="306" font-size="10.5" fill="#5b6170">Crée le dataset nnU-Net</text>
+      <text x="580" y="320" font-size="10.5" fill="#5b6170">(régions ET/TC/WT, dataset.json)</text>
+
+      <rect x="832" y="266" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="288" font-size="13" font-weight="700" fill="#1c2230">nnunet/splits.py</text>
+      <text x="846" y="306" font-size="10.5" fill="#5b6170">Découpe en folds équilibrés</text>
+      <text x="846" y="320" font-size="10.5" fill="#5b6170">+ leave-one-domain-out</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 2 ============ -->
+  <g>
+    <rect x="40" y="362" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="362" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="394" font-size="15" font-weight="700" fill="#1c2230">PHASE 2</text>
+    <text x="60" y="414" font-size="12.5" fill="#5b6170">Configuration</text>
+    <text x="60" y="430" font-size="12.5" fill="#5b6170">d'entraînement</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="398" font-size="13" font-weight="700" fill="#1c2230">config.py</text>
+      <text x="314" y="416" font-size="10.5" fill="#5b6170">Valide les configs YAML</text>
+      <text x="314" y="430" font-size="10.5" fill="#5b6170">(refuse les stubs vides)</text>
+
+      <rect x="566" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="398" font-size="13" font-weight="700" fill="#1c2230">nnunet/plan.py</text>
+      <text x="580" y="416" font-size="10.5" fill="#5b6170">Choisit le backbone ResEnc-L</text>
+      <text x="580" y="430" font-size="10.5" fill="#5b6170">construit les commandes nnU-Net</text>
+
+      <rect x="832" y="376" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="398" font-size="13" font-weight="700" fill="#1c2230">nnunet/trainer.py</text>
+      <text x="846" y="416" font-size="10.5" fill="#5b6170">Trainer GoAT : sampling équilibré</text>
+      <text x="846" y="430" font-size="10.5" fill="#5b6170">+ domain randomization (hooks)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 3 ============ -->
+  <g>
+    <rect x="40" y="472" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="472" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="504" font-size="15" font-weight="700" fill="#1c2230">PHASE 3</text>
+    <text x="60" y="524" font-size="12.5" fill="#5b6170">Entraînement</text>
+    <text x="60" y="540" font-size="12.5" fill="#5b6170">&amp; évaluation</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="314" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/metrics.py</text>
+      <text x="314" y="526" font-size="10.5" fill="#5b6170">Calcule Dice + HD95</text>
+      <text x="314" y="540" font-size="10.5" fill="#5b6170">par région (ET/TC/WT)</text>
+
+      <rect x="566" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="580" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/report.py</text>
+      <text x="580" y="526" font-size="10.5" fill="#5b6170">Tableaux par cohorte</text>
+      <text x="580" y="540" font-size="10.5" fill="#5b6170">+ « pire cohorte »</text>
+
+      <rect x="832" y="486" width="250" height="62" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="846" y="508" font-size="13" font-weight="700" fill="#1c2230">evaluation/protocol.py</text>
+      <text x="846" y="526" font-size="10.5" fill="#5b6170">Protocole scellé inner-dev /</text>
+      <text x="846" y="540" font-size="10.5" fill="#5b6170">outer-LODO (anti-triche)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 4 ============ -->
+  <g>
+    <rect x="40" y="582" width="1120" height="78" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="582" width="220" height="78" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="612" font-size="15" font-weight="700" fill="#1c2230">PHASE 4</text>
+    <text x="60" y="632" font-size="12.5" fill="#5b6170">Novelty : SSL /</text>
+    <text x="60" y="648" font-size="12.5" fill="#5b6170">semi-supervisé ✓</text>
+
+    <g filter="url(#soft)">
+      <rect x="278" y="592" width="300" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="290" y="612" font-size="12.5" font-weight="700" fill="#1c2230">ssl/__init__.py + configs/ssl.yaml</text>
+      <text x="290" y="628" font-size="10.5" fill="#5b6170">Self-training itératif (≤ 2 rounds) sur les</text>
+      <text x="290" y="642" font-size="10.5" fill="#5b6170">cas non labellisés (1138 cas GoAT découverts)</text>
+
+      <rect x="588" y="592" width="560" height="58" rx="8" fill="#eef6f1" stroke="#2e7d57"/>
+      <text x="600" y="610" font-size="10.5" fill="#3a3f4b"><tspan font-weight="700">Choix de conception :</tspan> multi-round borné à 2 · filtrage confiance par-cas + par-voxel</text>
+      <text x="600" y="625" font-size="10.5" fill="#3a3f4b">(voxels peu sûrs → ignore-label) · entraîne sur folds labellisés + pseudo-labels retenus</text>
+      <text x="600" y="640" font-size="10.5" fill="#3a3f4b">· pool training-only par défaut · gardes anti-fuite (cohorte UNK / validation / outer-LODO)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 5 ============ -->
+  <g>
+    <rect x="40" y="680" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="680" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="712" font-size="15" font-weight="700" fill="#1c2230">PHASE 5</text>
+    <text x="60" y="732" font-size="12.5" fill="#5b6170">Inférence</text>
+    <text x="60" y="748" font-size="12.5" fill="#5b6170">&amp; ensemble</text>
+
+    <g filter="url(#soft)">
+      <rect x="320" y="696" width="360" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="334" y="718" font-size="13" font-weight="700" fill="#1c2230">inference/predict.py</text>
+      <text x="334" y="736" font-size="10.5" fill="#5b6170">Construit les commandes de prédiction</text>
+      <text x="334" y="750" font-size="10.5" fill="#5b6170">(un modèle, puis ensemble de modèles)</text>
+
+      <rect x="700" y="696" width="380" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="714" y="718" font-size="13" font-weight="700" fill="#1c2230">inference/postprocess.py</text>
+      <text x="714" y="736" font-size="10.5" fill="#5b6170">Moyenne TTA, supprime les petits faux</text>
+      <text x="714" y="750" font-size="10.5" fill="#5b6170">positifs (ET-suppression, filtre composantes)</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 6 ============ -->
+  <g>
+    <rect x="40" y="790" width="1120" height="90" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="790" width="220" height="90" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="822" font-size="15" font-weight="700" fill="#1c2230">PHASE 6</text>
+    <text x="60" y="842" font-size="12.5" fill="#5b6170">Packaging du</text>
+    <text x="60" y="858" font-size="12.5" fill="#5b6170">conteneur Docker</text>
+
+    <g filter="url(#soft)">
+      <rect x="320" y="804" width="360" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="334" y="826" font-size="13" font-weight="700" fill="#1c2230">packaging/budget.py</text>
+      <text x="334" y="844" font-size="10.5" fill="#5b6170">Vérifie le budget dur de 8 h</text>
+      <text x="334" y="858" font-size="10.5" fill="#5b6170">d'inférence (règle du challenge)</text>
+
+      <rect x="700" y="804" width="380" height="58" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+      <text x="714" y="826" font-size="13" font-weight="700" fill="#1c2230">packaging/geometry.py</text>
+      <text x="714" y="844" font-size="10.5" fill="#5b6170">Garantit que la sortie a EXACTEMENT</text>
+      <text x="714" y="858" font-size="10.5" fill="#5b6170">la géométrie NIfTI de l'entrée</text>
+    </g>
+  </g>
+
+  <!-- ============ PHASE 7 ============ -->
+  <g>
+    <rect x="40" y="900" width="1120" height="64" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+    <rect x="40" y="900" width="220" height="64" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+    <text x="60" y="930" font-size="15" font-weight="700" fill="#1c2230">PHASE 7</text>
+    <text x="60" y="950" font-size="12.5" fill="#5b6170">Papier LNCS</text>
+
+    <g filter="url(#soft)">
+      <rect x="300" y="912" width="400" height="40" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+      <text x="314" y="937" font-size="13" font-weight="700" fill="#1c2230">paper/  — court papier 8–10 pages (à rédiger)</text>
+    </g>
+  </g>
+
+  <!-- ============ LEGEND ============ -->
+  <g>
+    <text x="40" y="998" font-size="13" font-weight="700" fill="#1c2230">Légende :</text>
+    <rect x="120" y="986" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="150" y="999" font-size="12" fill="#5b6170">codé &amp; testé (172 tests verts, dont 33 SSL)</text>
+    <rect x="360" y="986" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <text x="390" y="999" font-size="12" fill="#5b6170">stub / à implémenter</text>
+    <rect x="560" y="986" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <text x="590" y="999" font-size="12" fill="#5b6170">à rédiger</text>
+    <text x="700" y="999" font-size="11.5" fill="#8a90a0">⚠ Le code existe et est testé ; les hyperparamètres restent à régler.</text>
+  </g>
+</svg>
