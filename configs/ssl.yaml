@@ -1,0 +1,133 @@
+# BraTS 2026 Task 3 (GoAT) — SSL / self-training config.
+# Resolves the 15 ``# SPECIALIST:`` hooks of GoATSelfTrainingConfig
+# (src/brats2026/ssl/__init__.py). Composed ON TOP of nnUNetTrainerGoAT — no new
+# training loop. Bounded to n_rounds<=2 (design 2026-06-23-phase4-ssl-self-training).
+#
+# Tuned against the inner-dev per-cohort / worst-cohort reports ONLY. The outer
+# leave-one-domain-out fold was NOT read or inferred. From-scratch, GoAT-only data.
+# The expensive train-launch stays behind the human gate; this file only proposes.
+kind: ssl
+provenance:
+  git_sha: 79dd88efeea3276805d9528501575573ab57692e
+  # Fill from data-pipeline ledger (provenance.fingerprint_from_ledger) of the
+  # labelled inner-dev set + the unlabeled pool BEFORE any real run. null = not yet
+  # certified; compliance-guard must refuse a launch while this is null.
+  dataset_fingerprint: null
+  seed: 20260623          # date-derived, deterministic & traceable (matches `seed` hook below)
+  parent_run_id: null     # run-id of the seed teacher (the from-scratch nnUNetTrainerGoAT on inner-dev)
+  date: 2026-06-23
+  config_schema_version: 1
+
+# --- self-training schedule -------------------------------------------------------
+n_rounds: 2
+# Iterative self-training plateaus fast; 1 extra round captures most of the gain
+# without runaway confirmation bias (Xie et al. Noisy Student; Yarowsky). Each round
+# is a full nnUNetv2_train + a pseudo-label pass, so 2 rounds ~= 2x train wall-clock
+# (offline budget). Cap at 2 per the frozen design. Set to 1 if the offline window
+# is tight before Jul 2 / Jul 23.
+
+recompute_pseudo_each_round: true
+# Core of iterative self-training: round r re-predicts the pool with student[r-1] as
+# the new teacher (teacher[r]=student[r-1]). Refreshing pseudo-labels each round is
+# what lets the worst cohorts recover voxels the seed teacher was unsure about.
+
+# --- per-voxel confidence filtering -----------------------------------------------
+confidence_threshold_voxel: 0.90
+# Max-softmax per voxel must reach 0.90 to keep its pseudo-label; sub-threshold voxels
+# become ignore-label (dropped from the loss), not background. High end of the
+# 0.75-0.95 reference range: cross-cohort domain shift makes the teacher over-confident
+# on out-of-distribution cohorts (SSA/PED), so we keep only well-calibrated voxels and
+# let nnU-Net learn the rest from the labelled set. Re-loosen toward 0.85 only if the
+# accepted pseudo-mask is too sparse on inner-dev.
+
+pseudo_label_softmax_temperature: 1.0
+# No temperature scaling at generation (design default). Keep the teacher's native
+# calibration; T is a future knob if inner-dev shows systematic over/under-confidence.
+# (voxel_confidence_mask applies p**T to the dominant class — T>1 softens, T<1 sharpens.)
+
+ignore_label_index: 4
+# nnU-Net ignore-label sits ABOVE the GoAT label set (NCR=1, ED=2, ET=3, bg=0) so it
+# never collides with a real class. data-pipeline must register index 4 as the
+# ignore-label in dataset.json for the labelled+pseudo dataset.
+
+# --- per-case acceptance ----------------------------------------------------------
+case_confidence_metric: frac_confident_voxels
+# DECISION (raised by python-dev): of the two metrics derivable from CaseStats,
+# `frac_confident_voxels` is chosen over `mean_fg_softmax`. Rationale: it composes
+# directly with the per-voxel filter (it counts voxels >= confidence_threshold_voxel),
+# so accepting a case means "enough of its kept voxels are trustworthy" rather than
+# "the average confidence is high" — the latter can pass a case that is confident on a
+# tiny blob and noise elsewhere. More robust to the hallucination failure mode we most
+# fear under cross-cohort shift.
+# `mean_entropy` is NOT used: it is unimplemented (no entropy field on CaseStats).
+# RECOMMENDATION for later: adding `mean_entropy` would need (a) python-dev to add an
+# `mean_entropy` field to CaseStats + a branch in case_confidence_score, and (b)
+# data-pipeline/inference to compute -sum(p log p) over foreground voxels from the
+# softmax maps at pseudo-label generation. Entropy uses the full distribution (not just
+# the max), so it is a better-calibrated uncertainty signal for multi-class boundaries;
+# worth a follow-up lot, but do NOT implement now.
+
+confidence_threshold_case: 0.60
+# A case is accepted iff >= 60% of its voxels cleared the 0.90 voxel threshold (this
+# threshold is read on the `frac_confident_voxels` scale, 0-1, NOT the ~0.85 softmax
+# scale in the reference comment — that comment assumed mean_fg_softmax). 0.60 keeps
+# cases the teacher labelled coherently while dropping fragmented/uncertain predictions.
+# Retune on inner-dev acceptance rate per cohort (aim: don't starve the worst cohort).
+
+min_pseudo_foreground_voxels: 250
+# Reject near-empty predictions (mid 100-500 reference range). A handful of foreground
+# voxels carries no learnable signal and is usually a false-positive speck. ~250 voxels
+# at 1mm iso ~= a sub-cm lesion, a sane floor across glioma/meningioma/met/ped sizes.
+
+max_pseudo_foreground_fraction: 0.5
+# Anti-hallucination ceiling (design reference ~0.5). No plausible GoAT case has tumour
+# over half the volume; exceeding it signals the teacher flooded the case (domain-shift
+# failure) — reject it rather than train a student on garbage.
+
+# --- labelled vs pseudo sampling --------------------------------------------------
+labeled_unlabeled_ratio: 2.0
+# Draw labelled cases 2x as often as pseudo (mid 1.0-3.0 range). Keeps the trusted GT
+# signal dominant so noisy pseudo-labels regularise rather than overwrite — standard
+# self-training safeguard against confirmation bias. Lower toward 1.0 only if the pool
+# is large and high-confidence; raise toward 3.0 if pseudo noise hurts inner-dev.
+
+per_cohort_pseudo_quota: true
+# Cap every cohort at the smallest non-empty accepted cohort so no single cohort (likely
+# the easy/large GLI/MEN) dominates the pseudo set. Directly serves the worst-cohort
+# objective: balanced pseudo-augmentation, not mean-Dice chasing.
+
+# --- pseudo-label generation cost (teacher inference) -----------------------------
+teacher_folds: [0, 1, 2, 3, 4]
+# 5-fold inner-dev cross-validation ensemble = the teacher. INNER-DEV ONLY; these folds
+# never touch the outer-LODO held-out cohort (anti-leakage guard assert_goat_pool).
+# Ensembling folds gives the most reliable pseudo-labels — and this is OFFLINE
+# generation, NOT the 8h container path, so the cost budget is generation wall-clock,
+# not the submission limit.
+
+pseudo_use_ensemble: true
+# Ensemble the 5 teacher folds at generation. Better-calibrated, less noisy pseudo-labels
+# → fewer bad cases survive the filters. Offline only (see budget note below).
+
+pseudo_use_tta: true
+# Mirroring TTA at generation. Cheap robustness gain on the (offline) pseudo-labels;
+# does NOT affect the delivered container, which keeps its own infer.yaml TTA config.
+
+seed: 20260623
+# RNG seed for reproducibility / provenance (mirrors provenance.seed). Date-derived so
+# the whole self-training run is reproducible from scratch.
+
+# --- compliance gate (NON-SPECIALIST; restated for the human reviewer) ------------
+# allow_validation_pool stays at its safe code default (False): the unlabeled pool is
+# training-only (MEN/MET cases without GT). It is intentionally NOT set here — it is a
+# rule gate owned by the design/compliance-guard, not a tunable. Flip to True only if
+# the Synapse forum confirms validation-set use AND compliance-guard approves.
+
+# === Offline training-budget check (NOT the 8h container budget) ==================
+# The DELIVERED model is a single nnUNetTrainerGoAT (Phase 4 is entirely train-time):
+# the 8h / A10G 24GB container budget is governed by infer.yaml and is UNCHANGED by
+# this file. The cost this config incurs is OFFLINE:
+#   per round = [pseudo-gen over the pool] + [1 nnUNetv2_train per teacher fold].
+#   pseudo-gen cost ~ |pool| x 5 folds x 2 (TTA mirror) — bounded, offline, no deadline
+#   coupling beyond the Jul 2 / Jul 23 windows. n_rounds=2 => ~2x the seed-train cost.
+# If the offline window is tight: drop n_rounds to 1 first, then consider
+# pseudo_use_ensemble=false (single best fold) to cut generation cost ~5x.
