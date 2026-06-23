@@ -2,7 +2,7 @@
 
 > Document d'avancement. Pour l'installation et la prise en main, voir `README.md` ; pour la stratégie, `docs/PLAN.md` et `docs/ARCHITECTURE.md`.
 >
-> **Dernière mise à jour : 2026-06-18** · Branche : `feat/brats2026-package-build`
+> **Dernière mise à jour : 2026-06-23** · Branche : `feat/brats2026-package-build`
 
 ## Objectif
 
@@ -18,10 +18,10 @@ Contraintes clés du challenge (cf. `docs/PLAN.md`) :
 | Indicateur | Valeur |
 |---|---|
 | Phases construites | **0 à 6** (préparation → packaging) |
-| Tests | **139 tests** (17 fichiers), verts |
+| Tests | **172 tests** (18 fichiers), verts |
 | CI | GitHub Actions (`.github/workflows/tests.yml`) |
 | Modules source | 24 fichiers sous `src/brats2026/` |
-| Bloqueur principal | Phase 4 (SSL/auto-entraînement) non implémentée ; entraînement réel non lancé |
+| Bloqueur principal | Entraînement réel non lancé ; CLI training/inférence/SSL non exposée |
 
 ## Ce qui est construit
 
@@ -34,6 +34,7 @@ Contraintes clés du challenge (cf. `docs/PLAN.md`) :
 | Traçabilité | `provenance.py` | Provenance des artefacts | ✅ |
 | Prétraitement | `preprocess.py` | Normalisation / crop MRI multi-modalités (t1n, t1c, t2f, t2w) | ✅ |
 | nnU-Net | `nnunet/convert.py`, `plan.py`, `splits.py`, `trainer.py` | Conversion format nnU-Net, planification, splits, wrapper d'entraînement | ✅ (code) |
+| SSL (Phase 4) | `ssl/__init__.py` | Self-training itératif (≤2 rounds), filtrage confiance par-cas/par-voxel, gardes anti-fuite | ✅ (code) |
 | Inférence | `inference/predict.py`, `postprocess.py` | Prédiction + post-traitement | ✅ |
 | Évaluation | `evaluation/metrics.py`, `protocol.py`, `report.py` | Métriques (Dice/HD…), protocole, rapport | ✅ |
 | Empaquetage | `packaging/budget.py`, `geometry.py` | Budget ressources + géométrie pour le conteneur de soumission | ✅ |
@@ -43,7 +44,7 @@ Contraintes clés du challenge (cf. `docs/PLAN.md`) :
 
 ## Ce qui reste à faire
 
-- **Phase 4 — SSL / auto-entraînement** (`ssl/__init__.py`) : actuellement un **stub** documenté (self-training / pseudo-labelling sur les cas non labellisés de GoAT). Hyperparamètres marqués `# SPECIALIST:`. **À implémenter.**
+- **Phase 4 — SSL / self-training** : ✅ **implémentée** (`ssl/__init__.py` + `configs/ssl.yaml`, 33 tests). Self-training itératif borné à 2 rounds, filtrage de confiance par-cas/par-voxel, pool training-only par défaut (hook `allow_validation_pool`), gardes anti-fuite. Reste : valider sur run réel ; **confirmer sur le forum Synapse** si le validation set GoAT est utilisable comme pool non labellisé ; envisager une métrique `mean_entropy` (lot de suivi, cf. spec).
 - **Entraînement réel** : lancer l'entraînement nnU-Net v2 (pré-entraîné → fine-tuning sur les cohortes GoAT). Idéalement sur serveur GPU. Tester une boucle courte (peu d'epochs, batch réduit) avant le run complet.
 - **Exposer dans la CLI** les commandes d'entraînement / inférence / évaluation / packaging (seules `tasks`, `discover`, `preprocess-mri` le sont aujourd'hui).
 - **Conteneur Docker** de soumission à finaliser et valider (sans réseau).
