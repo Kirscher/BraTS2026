@@ -22,3 +22,4 @@ wandb/
 # generated / tooling artifacts (not source)
 graphify-out/
 .serena/
+.venv/
