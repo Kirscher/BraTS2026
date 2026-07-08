@@ -37,12 +37,21 @@ brats2026 discover --task task3 --split train --output work/manifests/train.json
 nnUNetv2_plan_and_preprocess -d 501 -pl nnUNetPlannerResEncL -c 3d_fullres --verify_dataset_integrity
 ```
 
-## 3. Fill the config (ai-specialist, human-gated)
+## 3. Bind the config to the data (the "press go" prerequisite)
 
-`configs/train.yaml` ships as an **intentionally invalid stub** — a run refuses to start while it
-is unfilled. The ai-specialist fills the provenance header (including the real
-`dataset_fingerprint` from the preprocessed data) and every `# SPECIALIST:` hook. Point the
-trainer at the filled file:
+`configs/train.yaml` **ships filled** with the first-run baseline hyperparameters (a standard
+nnU-Net ResEnc-L 3d_fullres recipe; the GoAT extras are neutralised to their no-op values — see
+the file header). The only things missing are the three **data/environment-bound** provenance
+fields, which cannot exist until the data is preprocessed. Bind them with one command:
+
+```bash
+brats2026 stamp-config --config configs/train.yaml --raw "$nnUNet_raw/Dataset501_BraTSGoAT"
+```
+
+This computes the dataset fingerprint (metadata + NIfTI headers only — no pixels), records the
+deployed `git_sha` and date, and writes them into the config **in place** (comments preserved).
+Until stamped, `dataset_fingerprint` is `null`, `assert_valid_config` refuses the file, and the
+trainer will not launch — by design (no run against an unbound config). Then point the trainer at it:
 
 ```bash
 export BRATS_GOAT_TRAIN_CONFIG=/path/to/configs/train.yaml
@@ -52,6 +61,9 @@ At `initialize()` the trainer loads this file, validates it (`assert_valid_confi
 `initial_lr / weight_decay / num_epochs / oversample_foreground_percent`. If the file is missing
 or unfilled it raises **before** training — no silent default run.
 
+> Retuning later (the "adjust together" phase) means editing the hyperparameter values in
+> `configs/train.yaml` — no re-stamp needed unless the *data* changes.
+
 ## 4. Launch (the "go")
 
 ```bash
@@ -60,6 +72,23 @@ nnUNetv2_train 501 3d_fullres 0 -tr nnUNetTrainerGoAT -p nnUNetResEncUNetLPlans
 ```
 
 `brats2026.nnunet.plan.train_command()` / `kfold_train_commands()` emit these argv verbatim.
+
+## 5. First validation result (GoAT region metrics)
+
+nnU-Net auto-validates each fold at the end and writes predictions to
+`$nnUNet_results/Dataset501_BraTSGoAT/nnUNetTrainerGoAT__nnUNetResEncUNetLPlans__3d_fullres/fold_0/validation/`.
+Score those against the ground truth into the **GoAT per-cohort report** (Dice + HD95 + NSD,
+legacy-overlap and lesion-wise, worst-cohort — the generalisation signal):
+
+```bash
+brats2026 evaluate \
+  --pred "$nnUNet_results/.../fold_0/validation" \
+  --gt   "$nnUNet_preprocessed/Dataset501_BraTSGoAT/gt_segmentations" \
+  --output work/reports/fold0_goat.json
+```
+
+It prints per-cohort WT Dice and the worst cohort, and writes the full table as JSON. This is the
+"first training result" to compare against the WT Dice > 0.9 ResEnc-L baseline before we retune.
 
 ## What is and isn't wired yet
 

@@ -1,24 +1,51 @@
-# BraTS 2026 Task 3 (GoAT) — train config STUB.
-# Filled by the ai-specialist AFTER the dataset fingerprint exists;
-# assert_valid_config refuses this stub on purpose (empty header + None hooks).
-# Every value below is an UNFILLABLE placeholder until the specialist sets it.
+# BraTS 2026 Task 3 (GoAT) — train config.
+#
+# FIRST-RUN BASELINE: this reproduces a standard nnU-Net v2 ResEnc-L 3d_fullres training
+# (the recipe that already reached WT Dice > 0.9 with the ResEnc-L backbone alone). The GoAT
+# extras (domain-balanced sampling, domain-randomization augmentation) are present but
+# NEUTRALISED to their no-op values here, because their machinery is still a TODO in
+# nnUNetTrainerGoAT.initialize() — so this config trains a *configured region-based nnU-Net
+# baseline*, exactly the target for the first result. We tune the extras together afterwards.
+#
+# Hyperparameters below are filled. The three provenance fields git_sha / date /
+# dataset_fingerprint are DATA/ENVIRONMENT-bound and cannot be known until the data is
+# preprocessed on the HPC — fill them there with ONE command:
+#
+#     brats2026 stamp-config --config configs/train.yaml --raw "$nnUNet_raw/Dataset501_BraTSGoAT"
+#
+# until then assert_valid_config refuses this file (dataset_fingerprint is null) and the
+# trainer will not launch — by design (no run against an unbound config). See docs/RUN_HPC.md.
 kind: train
+
 provenance:
-  git_sha: null
-  dataset_fingerprint: null
-  seed: null
-  parent_run_id: null
-  date: null
-  config_schema_version: null
-initial_lr: null
-weight_decay: null
-num_epochs: null
-batch_size: null
-patch_size: null
-oversample_foreground_percent: null
-loss_dice_weight: null
-loss_ce_weight: null
-domain_sampling_alpha: null
-domain_rand_intensity_sigma: null
-domain_rand_contrast_range: null
-domain_rand_noise_sigma: null
+  # --- data/environment-bound: stamped on the HPC by `brats2026 stamp-config` ---
+  git_sha: null                       # STAMP: git rev-parse HEAD of the deployed commit
+  date: null                          # STAMP: ISO date the config was bound to the data
+  dataset_fingerprint: null           # STAMP: provenance fingerprint of the preprocessed data
+  # --- decided now (specialist-owned) ---
+  seed: 42                            # RNG seed — reproducible-from-scratch
+  parent_run_id: "root"               # fresh root run (no parent)
+  config_schema_version: "brats2026-config/1"
+
+# --- optimiser / schedule (applied by apply_goat_config BEFORE super().initialize()) ---
+initial_lr: 0.01                      # nnU-Net SGD(momentum=0.99) base LR, poly decay
+weight_decay: 3.0e-5                  # nnU-Net default
+num_epochs: 1000                      # full nnU-Net schedule (the >0.9 baseline). Lower (e.g.
+                                      # 250) for a faster first checkpoint — WT>0.9 lands early.
+oversample_foreground_percent: 0.33   # nnU-Net default foreground oversampling
+
+# --- geometry: MIRRORED FROM THE PLANS for provenance; the planner's
+#     nnUNetResEncUNetLPlans.json is AUTHORITATIVE. apply_goat_config does NOT set these
+#     (the plans/dataloaders own them) — copy the real values here after plan_and_preprocess. ---
+batch_size: 2                         # ResEnc-L 3d_fullres typical; confirm against plans
+patch_size: [128, 160, 112]           # ResEnc-L 3d_fullres typical; confirm against plans
+
+# --- region loss weights (Dice + CE, region-based ET/TC/WT) ---
+loss_dice_weight: 1.0                 # nnU-Net DC_and_CE_loss weight_dice
+loss_ce_weight: 1.0                   # nnU-Net DC_and_CE_loss weight_ce
+
+# --- GoAT extras: NEUTRALISED for the baseline (machinery TODO in trainer.initialize) ---
+domain_sampling_alpha: 0.0            # 0 = natural cohort frequency (no rebalancing) = baseline
+domain_rand_intensity_sigma: 0.0      # 0 = intensity domain-randomization OFF
+domain_rand_contrast_range: [1.0, 1.0]  # identity = contrast jitter OFF
+domain_rand_noise_sigma: 0.0          # 0 = added-noise domain-randomization OFF

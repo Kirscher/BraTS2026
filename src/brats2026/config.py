@@ -196,6 +196,66 @@ def load_config(path: Path) -> dict:
     return data
 
 
+def _yaml_scalar(value) -> str:
+    """Render a Python scalar as a YAML scalar for in-place line editing (quotes strings)."""
+    if isinstance(value, str):
+        return '"' + value.replace('"', '\\"') + '"'
+    return str(value)
+
+
+def stamp_provenance_in_text(text: str, updates: dict) -> str:
+    """Set ``provenance.<key>`` values in a config's YAML *text*, preserving comments/layout.
+
+    Only lines inside the top-level ``provenance:`` mapping are touched; each ``key`` in
+    ``updates`` has its value (and only its value) rewritten, keeping any trailing ``#`` comment
+    on that line. Unlike a YAML load→dump round-trip this does NOT strip the file's comments — it
+    is a targeted line edit, used by :func:`stamp_config_file`. Raises :class:`ConfigError` if a
+    requested key is not found in the provenance block, so a silent no-op stamp can't happen.
+    """
+    lines = text.splitlines(keepends=True)
+    in_block = False
+    remaining = dict(updates)
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not in_block:
+            if stripped.split("#", 1)[0].rstrip() == "provenance:":
+                in_block = True
+            continue
+        # End of the provenance block: a non-indented, non-blank, non-comment line.
+        if line[:1] not in (" ", "\t") and stripped and not stripped.startswith("#"):
+            break
+        indent = line[: len(line) - len(line.lstrip())]
+        body = stripped.split("#", 1)[0]
+        if ":" not in body:
+            continue
+        key = body.split(":", 1)[0].strip()
+        if key in remaining:
+            newline = line[-1] if line[-1:] in "\r\n" else ""
+            comment = ""
+            if "#" in line:
+                comment = "  " + line[line.index("#"):].rstrip("\r\n")
+            lines[i] = f"{indent}{key}: {_yaml_scalar(remaining.pop(key))}{comment}{newline}"
+    if remaining:
+        raise ConfigError(
+            "stamp targets not found in provenance block: " + ", ".join(sorted(remaining))
+        )
+    return "".join(lines)
+
+
+def stamp_config_file(path: Path, updates: dict) -> Path:
+    """Write ``updates`` into the ``provenance:`` block of the config file at ``path`` in place.
+
+    Comment/layout-preserving (see :func:`stamp_provenance_in_text`). This is the mechanism
+    behind ``brats2026 stamp-config``: it binds a shipped train config to the concrete data +
+    commit on the HPC (git_sha / date / dataset_fingerprint) without disturbing the hand-written
+    hyperparameter section.
+    """
+    path = Path(path)
+    stamped = stamp_provenance_in_text(path.read_text(encoding="utf-8"), updates)
+    path.write_text(stamped, encoding="utf-8")
+    return path
+
+
 def dump_config(cfg: dict, path: Path, header_comment: str | None = None) -> Path:
     """Write ``cfg`` to ``path`` as YAML, optionally prefixed with a ``#`` comment block."""
     yaml = _require_yaml()

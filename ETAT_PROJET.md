@@ -20,10 +20,10 @@ Contraintes clés du challenge (cf. `docs/PLAN.md`) :
 | Indicateur | Valeur |
 |---|---|
 | Phases construites | **0 à 6** (préparation → packaging) |
-| Tests | **214 tests**, verts sur Linux (212 passés ; 2 échecs Windows-only : symlink `WinError 1314` + suffixe de chemin `/`) |
+| Tests | **226 tests**, verts sur Linux (224 passés ; 2 échecs Windows-only : symlink `WinError 1314` + suffixe de chemin `/`) |
 | CI | GitHub Actions (`.github/workflows/tests.yml`) |
-| Modules source | `src/brats2026/` (dont `nnunet/`, `ssl/` avec MAE, `evaluation/`) |
-| Bloqueur principal | Entraînement réel non lancé (câblé + human-gated, cf. `docs/RUN_HPC.md`) ; config `train.yaml` à remplir par l'ai-specialist |
+| Modules source | `src/brats2026/` (dont `nnunet/`, `ssl/` avec MAE, `evaluation/` avec `score.py`) |
+| Bloqueur principal | Entraînement réel non lancé, mais **prêt à lancer** : `configs/train.yaml` rempli (baseline ResEnc-L), à lier aux données par `brats2026 stamp-config` sur le HPC (cf. `docs/RUN_HPC.md`) |
 
 ## Ce qui est construit
 
@@ -40,7 +40,7 @@ Contraintes clés du challenge (cf. `docs/PLAN.md`) :
 | Inférence | `inference/predict.py`, `postprocess.py` | Prédiction + post-traitement | ✅ |
 | Évaluation | `evaluation/metrics.py`, `protocol.py`, `report.py` | Métriques **Dice + HD95 + NSD** (surface, rank-agrégée par le leaderboard), protocole, rapport par-cohorte + LODO | ✅ |
 | Empaquetage | `packaging/budget.py`, `geometry.py` | Budget ressources + géométrie pour le conteneur de soumission | ✅ |
-| CLI | `cli.py` | Commandes `tasks`, `discover`, `preprocess-mri`, `ssl-select`, `install-trainer` | ✅ (5 commandes exposées) |
+| CLI | `cli.py` | Commandes `tasks`, `discover`, `preprocess-mri`, `ssl-select`, `install-trainer`, `stamp-config`, `evaluate` | ✅ (7 commandes exposées) |
 
 **Scaffolding projet** (commit `69a02ea`) : guide projet, équipe de 8 sous-agents Claude Code (`.claude/agents/`), `configs/`, `docker/`, `paper/`.
 
@@ -60,7 +60,7 @@ brats2026/
 ├── README.md              Prise en main (install, quickstart)
 ├── ETAT_PROJET.md         Ce document
 ├── src/brats2026/         Package (config, discover, domains, nnunet/, inference/, evaluation/, packaging/, ssl/)
-├── tests/                 214 tests (miroir de src/)
+├── tests/                 226 tests (miroir de src/)
 ├── configs/               train.yaml (stub à remplir), infer.yaml, ssl.yaml
 ├── docker/                Dockerfile (conteneur de soumission)
 ├── docs/                  RUN_HPC.md (lancement HPC), PLAN.md, ARCHITECTURE.md, AGENT_RUNBOOK.md, synapse_wiki_raw/
@@ -78,7 +78,7 @@ Miroir du dataset attendu à : `/mnt/CPS-RADT/datasets/MICCAI/2026/BraTS2026`. D
 ```bash
 source ~/venvs/synapseclient/bin/activate
 python -m pip install -e '.[mri]'
-python -m pytest -q                       # 214 tests (2 échecs Windows-only attendus)
+python -m pytest -q                       # 226 tests (2 échecs Windows-only attendus)
 python -m brats2026.cli tasks             # lister les tasks
 python -m brats2026.cli discover --task task3 --split train --output work/manifests/task3_train.jsonl
 ```

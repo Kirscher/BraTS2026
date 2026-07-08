@@ -163,6 +163,54 @@ def fingerprint_from_ledger(entries: list[LedgerEntry], extra: dict) -> str:
 
 
 # --------------------------------------------------------------------------------------- #
+# Dataset fingerprint over an nnU-Net raw dataset (metadata + header only, no pixels)
+# --------------------------------------------------------------------------------------- #
+def dataset_fingerprint_from_raw(
+    raw_dataset_dir: Path,
+    extra: dict,
+    read_headers: bool = True,
+) -> str:
+    """Compute the dataset fingerprint of a converted nnU-Net raw dataset, pixel-free.
+
+    Enumerates cases from ``imagesTr/<case>_0000.nii.gz`` and folds, per case, the metadata of
+    every associated file (all four modality channels + the ``labelsTr`` seg): each file's name,
+    byte size and — when ``read_headers`` — its NIfTI **header** geometry (shape/dtype/affine,
+    never ``get_fdata``). Cases and files are sorted before hashing, so the result is
+    order-independent and re-derivable. ``extra`` folds in the decision-defining block (label
+    map, seed, dataset name) exactly like :func:`dataset_fingerprint`.
+
+    This is what ``brats2026 stamp-config`` writes into a train config's
+    ``provenance.dataset_fingerprint`` so the config is bound to the exact data it trains on.
+    Reads only file metadata + headers — safe on the controlled NAS-derived raw dataset.
+    """
+    raw_dataset_dir = Path(raw_dataset_dir)
+    images_tr = raw_dataset_dir / "imagesTr"
+    labels_tr = raw_dataset_dir / "labelsTr"
+    if not images_tr.is_dir():
+        raise FileNotFoundError(f"no imagesTr/ under {raw_dataset_dir}")
+
+    case_ids = sorted(p.name[: -len("_0000.nii.gz")] for p in images_tr.glob("*_0000.nii.gz"))
+    if not case_ids:
+        raise FileNotFoundError(f"no *_0000.nii.gz cases under {images_tr}")
+
+    case_fps: list[str] = []
+    for case_id in case_ids:
+        case_files = sorted(images_tr.glob(f"{case_id}_*.nii.gz"))
+        seg = labels_tr / f"{case_id}.nii.gz"
+        if seg.exists():
+            case_files.append(seg)
+        per_file = []
+        for path in case_files:
+            header = nifti_header_fields(path) if read_headers else None
+            per_file.append(
+                {"name": path.name, "size": int(path.stat().st_size), "header": header}
+            )
+        case_fps.append(canonical_digest({"case_id": case_id, "files": per_file}))
+
+    return dataset_fingerprint(case_fps, extra)
+
+
+# --------------------------------------------------------------------------------------- #
 # Human-readable manifest
 # --------------------------------------------------------------------------------------- #
 def write_manifest(

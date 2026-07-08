@@ -65,6 +65,55 @@ def cmd_install_trainer(_: argparse.Namespace) -> None:
     print(f"Now set ${GOAT_TRAIN_CONFIG_ENV}=<path to a filled configs/train.yaml> before nnUNetv2_train.")
 
 
+def cmd_stamp_config(args: argparse.Namespace) -> None:
+    import subprocess
+    from datetime import date as _date
+
+    from .config import assert_valid_config, load_config, stamp_config_file
+    from .nnunet.convert import CHANNEL_ORDER, DATASET_NAME
+    from .provenance import dataset_fingerprint_from_raw
+
+    extra = {
+        "label_map": {"NCR": 1, "ED": 2, "ET": 3},
+        "seed": (load_config(args.config).get("provenance") or {}).get("seed"),
+        "dataset": DATASET_NAME,
+        "channels": list(CHANNEL_ORDER),
+    }
+    fingerprint = dataset_fingerprint_from_raw(args.raw, extra, read_headers=not args.no_headers)
+
+    git_sha = args.git_sha
+    if git_sha is None:
+        try:
+            git_sha = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parent, text=True
+            ).strip()
+        except Exception:  # noqa: BLE001 - git absent / not a repo: caller can pass --git-sha
+            raise SystemExit("could not read git HEAD; pass --git-sha <sha> explicitly")
+
+    stamp_config_file(
+        args.config,
+        {"git_sha": git_sha, "date": _date.today().isoformat(), "dataset_fingerprint": fingerprint},
+    )
+    assert_valid_config(load_config(args.config), "train")  # fail loud if anything is still unset
+    print(f"stamp-config: bound {args.config} -> fingerprint {fingerprint[:16]}… @ {git_sha[:10]}")
+    print("Config is now valid; set $BRATS_GOAT_TRAIN_CONFIG to it before nnUNetv2_train.")
+
+
+def cmd_evaluate(args: argparse.Namespace) -> None:
+    from .evaluation.score import evaluate_directory
+
+    report = evaluate_directory(args.pred, args.gt, args.output)
+    worst = report["worst_cohort"]["WT"]
+    print(f"evaluate: scored {report['n_cases']} case(s) -> {args.output}")
+    legacy = report["per_cohort"]["legacy"]["cohorts"]
+    for cohort, body in legacy.items():
+        if body["n_cases"]:
+            wt = body["regions"]["WT"]["dice"]
+            print(f"  {cohort}: n={body['n_cases']:<4} WT Dice(legacy)={wt:.4f}" if wt is not None else f"  {cohort}: n={body['n_cases']}")
+    if worst["cohort"] is not None:
+        print(f"  worst cohort (lesion WT Dice): {worst['cohort']} = {worst['dice']:.4f}")
+
+
 def cmd_tasks(_: argparse.Namespace) -> None:
     for key, spec in TASKS.items():
         print(f"{key}: {spec.name} [{spec.kind}]")
@@ -113,6 +162,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Register nnUNetTrainerGoAT on nnU-Net's trainer search path (run once on the HPC).",
     )
     install_parser.set_defaults(func=cmd_install_trainer)
+
+    stamp_parser = subparsers.add_parser(
+        "stamp-config",
+        help="Bind a train config to the preprocessed data + commit (git_sha/date/fingerprint).",
+    )
+    stamp_parser.add_argument("--config", type=Path, required=True, help="configs/train.yaml to stamp in place.")
+    stamp_parser.add_argument("--raw", type=Path, required=True,
+                              help="nnU-Net raw dataset dir, e.g. $nnUNet_raw/Dataset501_BraTSGoAT.")
+    stamp_parser.add_argument("--git-sha", help="Override commit SHA (default: git rev-parse HEAD).")
+    stamp_parser.add_argument("--no-headers", action="store_true",
+                              help="Fingerprint from file sizes only (skip NIfTI header reads).")
+    stamp_parser.set_defaults(func=cmd_stamp_config)
+
+    eval_parser = subparsers.add_parser(
+        "evaluate",
+        help="Score predicted vs ground-truth segmentations into the GoAT per-cohort report.",
+    )
+    eval_parser.add_argument("--pred", type=Path, required=True, help="Dir of predicted <case>.nii.gz.")
+    eval_parser.add_argument("--gt", type=Path, required=True, help="Dir of ground-truth <case>.nii.gz.")
+    eval_parser.add_argument("--output", type=Path, required=True, help="Report JSON to write.")
+    eval_parser.set_defaults(func=cmd_evaluate)
 
     return parser
 
