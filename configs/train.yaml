@@ -30,8 +30,8 @@ provenance:
 # --- optimiser / schedule (applied by apply_goat_config BEFORE super().initialize()) ---
 initial_lr: 0.01                      # nnU-Net SGD(momentum=0.99) base LR, poly decay
 weight_decay: 3.0e-5                  # nnU-Net default
-num_epochs: 1000                      # full nnU-Net schedule (the >0.9 baseline). Lower (e.g.
-                                      # 250) for a faster first checkpoint — WT>0.9 lands early.
+num_epochs: 250                       # first-checkpoint schedule — WT>0.9 lands early; raise to
+                                      # the full 1000 once we retune together for the best baseline.
 oversample_foreground_percent: 0.33   # nnU-Net default foreground oversampling
 
 # --- geometry: MIRRORED FROM THE PLANS for provenance; the planner's
