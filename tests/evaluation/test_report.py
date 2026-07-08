@@ -11,9 +11,10 @@ from brats2026.evaluation.report import (
 )
 
 
-def _case(case_id, cohort, dice, hd95, family="legacy"):
-    """Build a CaseScore with the same dice/hd95 across ET/TC/WT for the given family."""
-    regions = {r: {"dice": dice, "hd95": hd95} for r in ("ET", "TC", "WT")}
+def _case(case_id, cohort, dice, hd95, family="legacy", nsd=None):
+    """Build a CaseScore with the same dice/hd95/nsd across ET/TC/WT for the given family."""
+    nsd = dice if nsd is None else nsd
+    regions = {r: {"dice": dice, "hd95": hd95, "nsd": nsd} for r in ("ET", "TC", "WT")}
     kwargs = {"case_id": case_id, "cohort": cohort, family: regions}
     return CaseScore(**kwargs)
 
@@ -52,6 +53,22 @@ def test_per_cohort_means_are_correct():
     assert gli["hd95"]["mean"] == 2.0  # mean(1.0, 3.0)
     assert table["cohorts"]["GLI"]["n_cases"] == 2
     assert table["cohorts"]["MEN"]["regions"]["WT"]["dice"] == 1.0
+
+
+def test_per_cohort_includes_nsd_mean():
+    scores = [
+        _case("BraTS-GLI-1-0", "GLI", 0.8, 1.0, nsd=0.9),
+        _case("BraTS-GLI-2-0", "GLI", 0.6, 3.0, nsd=0.7),
+    ]
+    wt = per_cohort_table(scores)["cohorts"]["GLI"]["regions"]["WT"]
+    assert wt["nsd"] == 0.8  # mean(0.9, 0.7)
+
+
+def test_lodo_includes_nsd_mean():
+    by_held = {"MEN": [_case("BraTS-MEN-1-0", "MEN", 0.5, 2.0, nsd=0.6)]}
+    table = leave_one_domain_out_table(by_held)
+    men = next(r for r in table["rows"] if r["held_out"] == "MEN")
+    assert men["regions"]["WT"]["nsd"] == 0.6
 
 
 def test_per_cohort_empty_cohort_is_graceful():

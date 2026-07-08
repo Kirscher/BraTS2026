@@ -1,13 +1,16 @@
 import math
 
 import numpy as np
+import pytest
 
 from brats2026.evaluation.metrics import (
+    DEFAULT_NSD_TOLERANCES_MM,
     REGIONS,
     connected_components,
     dice_coefficient,
     hausdorff95,
     lesion_wise_dice,
+    normalized_surface_dice,
     region_mask,
     region_scores,
     validate_labels,
@@ -100,6 +103,63 @@ def test_hd95_anisotropic_spacing_scales_distance():
 
 
 # --------------------------------------------------------------------------- #
+# NSD (Normalized Surface Dice)
+# --------------------------------------------------------------------------- #
+def test_nsd_both_empty_is_one():
+    z = np.zeros((4, 4, 4), dtype=bool)
+    assert normalized_surface_dice(z, z, tolerance_mm=1.0) == 1.0
+
+
+def test_nsd_one_empty_is_zero():
+    full = np.zeros((4, 4, 4), dtype=bool)
+    full[1:3, 1:3, 1:3] = True
+    empty = np.zeros((4, 4, 4), dtype=bool)
+    assert normalized_surface_dice(full, empty, tolerance_mm=1.0) == 0.0
+    assert normalized_surface_dice(empty, full, tolerance_mm=1.0) == 0.0
+
+
+def test_nsd_identical_masks_is_one():
+    m = np.zeros((5, 5, 5), dtype=bool)
+    m[1:4, 1:4, 1:4] = True
+    assert normalized_surface_dice(m, m, tolerance_mm=0.0) == 1.0
+
+
+def test_nsd_tolerance_gate():
+    # two single-voxel masks one step apart: inside τ=1 they agree, at τ=0.5 they do not.
+    pred = np.zeros((1, 1, 3), dtype=bool)
+    gt = np.zeros((1, 1, 3), dtype=bool)
+    pred[0, 0, 0] = True
+    gt[0, 0, 1] = True
+    assert normalized_surface_dice(pred, gt, tolerance_mm=1.0) == 1.0
+    assert normalized_surface_dice(pred, gt, tolerance_mm=0.5) == 0.0
+
+
+def test_nsd_uses_spacing_in_mm():
+    # the separating axis is 3x as long, so τ=1 mm no longer bridges the gap; τ=3 mm does.
+    pred = np.zeros((1, 1, 3), dtype=bool)
+    gt = np.zeros((1, 1, 3), dtype=bool)
+    pred[0, 0, 0] = True
+    gt[0, 0, 1] = True
+    assert normalized_surface_dice(pred, gt, tolerance_mm=1.0, spacing=(1.0, 1.0, 3.0)) == 0.0
+    assert normalized_surface_dice(pred, gt, tolerance_mm=3.0, spacing=(1.0, 1.0, 3.0)) == 1.0
+
+
+def test_nsd_partial_surface_agreement():
+    # pred has two surface points (one matching gt, one 10 mm away); gt has one.
+    # pred→gt within τ: 1 of 2 ; gt→pred within τ: 1 of 1  →  (1+1)/(2+1) = 2/3
+    pred = np.zeros((1, 1, 11), dtype=bool)
+    gt = np.zeros((1, 1, 11), dtype=bool)
+    pred[0, 0, 0] = True
+    pred[0, 0, 10] = True
+    gt[0, 0, 0] = True
+    assert normalized_surface_dice(pred, gt, tolerance_mm=1.0) == pytest.approx(2 / 3)
+
+
+def test_nsd_default_tolerances_cover_all_regions():
+    assert set(DEFAULT_NSD_TOLERANCES_MM) == set(REGIONS)
+
+
+# --------------------------------------------------------------------------- #
 # Connected components
 # --------------------------------------------------------------------------- #
 def test_connected_components_2d_two_blobs():
@@ -185,3 +245,4 @@ def test_region_scores_returns_all_regions():
     for region in out.values():
         assert region["dice"] == 1.0
         assert region["hd95"] == 0.0
+        assert region["nsd"] == 1.0

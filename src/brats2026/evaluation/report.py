@@ -2,7 +2,9 @@
 
 Turns a bag of per-case region scores into the GoAT-relevant tables:
 
-- **per-cohort** mean Dice + HD95 for ET/TC/WT (in :data:`domains.COHORTS` order);
+- **per-cohort** mean Dice + NSD + (inf-aware) HD95 for ET/TC/WT (in :data:`domains.COHORTS`
+  order). NSD is the surface metric the leaderboard rank-aggregates with Dice; it is bounded
+  ``[0, 1]`` with no ``inf`` (a total miss is 0.0), so it averages as a plain mean;
 - the **worst cohort** — the GoAT generalisation signal, kept as a first-class result rather
   than buried inside a pooled mean;
 - a **leave-one-domain-out** table (one row per held-out cohort).
@@ -41,8 +43,9 @@ REGION_NAMES: tuple[str, ...] = ("ET", "TC", "WT")
 class CaseScore:
     """All scores for one case, both scoring families side by side.
 
-    ``legacy`` and ``lesion`` map region name -> ``{"dice": float, "hd95": float}``. ``cohort``
-    defaults to the cohort decoded from ``case_id`` when not given explicitly.
+    ``legacy`` and ``lesion`` map region name -> ``{"dice": float, "hd95": float, "nsd": float}``
+    (``nsd`` optional for back-compat). ``cohort`` defaults to the cohort decoded from ``case_id``
+    when not given explicitly.
     """
 
     case_id: str
@@ -101,7 +104,8 @@ def _region_summary(scores: list[CaseScore], cohort: str, family: str, region: s
     fam = [s.family(family) for s in scores if s.cohort == cohort]
     dices = [r[region]["dice"] for r in fam if region in r]
     hd95s = [r[region]["hd95"] for r in fam if region in r]
-    return {"dice": _mean_or_none(dices), "hd95": hd95_summary(hd95s)}
+    nsds = [r[region]["nsd"] for r in fam if region in r and "nsd" in r[region]]
+    return {"dice": _mean_or_none(dices), "nsd": _mean_or_none(nsds), "hd95": hd95_summary(hd95s)}
 
 
 def per_cohort_table(scores: list[CaseScore], family: str = "legacy") -> dict:
@@ -174,6 +178,13 @@ def leave_one_domain_out_table(
                                 s.family(family)[region]["dice"]
                                 for s in held_scores
                                 if region in s.family(family)
+                            ]
+                        ),
+                        "nsd": _mean_or_none(
+                            [
+                                s.family(family)[region]["nsd"]
+                                for s in held_scores
+                                if region in s.family(family) and "nsd" in s.family(family)[region]
                             ]
                         ),
                         "hd95": hd95_summary(
