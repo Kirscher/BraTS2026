@@ -24,6 +24,8 @@ from typing import Optional, Sequence
 
 from ..domains import UNKNOWN_COHORT, cohort_from_case_id
 from ..inference.predict import predict_command, predict_ensemble_commands
+from ..nnunet.convert import DATASET_ID
+from ..nnunet.plan import train_command
 
 # The knobs the specialist owns. Names mirror GoATSelfTrainingConfig fields below.
 # ``allow_validation_pool`` is deliberately absent: it is a conformance gate, not a tunable.
@@ -194,6 +196,54 @@ def select_pseudo_cases(
     return {cohort: ids[:quota] for cohort, ids in accepted.items()}
 
 
+def select_from_stats_records(
+    records: Sequence[dict], config: GoATSelfTrainingConfig
+) -> dict[str, list[str]]:
+    """Apply the pseudo-label filters to a list of per-case stats **records** (dicts).
+
+    Each record must carry the :class:`CaseStats` fields (``case_id``, ``mean_fg_softmax``,
+    ``n_fg_voxels``, ``fg_fraction``, ``frac_confident_voxels``). The cohort of each case is
+    decoded from its ID via :func:`brats2026.domains.cohort_from_case_id`. Returns the accepted
+    cohort→case-id mapping from :func:`select_pseudo_cases`. This is the pure core the
+    ``brats2026 ssl-select`` CLI wraps: the producer (inference / data-pipeline) computes the
+    stats from the teacher's softmax maps, this decides which cases survive the filters.
+    """
+    stats = [
+        CaseStats(
+            case_id=r["case_id"],
+            mean_fg_softmax=float(r["mean_fg_softmax"]),
+            n_fg_voxels=int(r["n_fg_voxels"]),
+            fg_fraction=float(r["fg_fraction"]),
+            frac_confident_voxels=float(r["frac_confident_voxels"]),
+        )
+        for r in records
+    ]
+    cohort_of = {s.case_id: cohort_from_case_id(s.case_id) for s in stats}
+    return select_pseudo_cases(stats, cohort_of, config)
+
+
+def load_ssl_config(path: str | Path) -> GoATSelfTrainingConfig:
+    """Build a :class:`GoATSelfTrainingConfig` from a ``configs/ssl.yaml`` file.
+
+    Reads the SPECIALIST hook values (and the ``allow_validation_pool`` rule gate) from the YAML
+    and returns a config object. ``teacher_folds`` is coerced from a YAML list to a tuple.
+    :func:`assert_configured` still governs whether the result may launch a run.
+    """
+    from ..config import load_config
+
+    cfg = load_config(Path(path))
+    kwargs: dict = {}
+    for hook in SPECIALIST_HOOKS:
+        if hook in cfg and cfg[hook] is not None:
+            value = cfg[hook]
+            if hook == "teacher_folds" and isinstance(value, list):
+                value = tuple(value)
+            kwargs[hook] = value
+    if cfg.get("allow_validation_pool") is not None:
+        kwargs["allow_validation_pool"] = bool(cfg["allow_validation_pool"])
+    return GoATSelfTrainingConfig(**kwargs)
+
+
 def labeled_unlabeled_sampling_plan(
     n_labeled: int, n_pseudo: int, ratio: float
 ) -> dict[str, float]:
@@ -247,75 +297,95 @@ def pseudo_label_predict_commands(
     ]
 
 
+def round_dataset_id(base_dataset_id: int, round_index: int) -> int:
+    """nnU-Net dataset id of the augmented (labelled + round-r accepted pseudo) training set.
+
+    Each self-training round trains on its OWN dataset so students never clobber one another and
+    the next round can use round r's student as its teacher (teacher[r+1] = the student trained on
+    ``round_dataset_id(base, r)``). data-pipeline builds these augmented datasets under the ids
+    this returns (``base + 100 + r``, e.g. 501 → 601, 602).
+    """
+    return base_dataset_id + 100 + round_index
+
+
+def pseudo_select_command(
+    stats_json: str | Path, config_path: str | Path, accepted_out: str | Path
+) -> list[str]:
+    """The explicit filter step: ``brats2026 ssl-select`` over the teacher's per-case stats.
+
+    Sits BETWEEN pseudo-label generation and the student train in every round, so the plan
+    *contains* the acceptance / rejection + cohort-quota decision instead of silently training on
+    every teacher prediction (the previous gap). See :func:`select_from_stats_records`.
+    """
+    return [
+        "brats2026", "ssl-select",
+        "--stats-json", str(stats_json),
+        "--config", str(config_path),
+        "--out", str(accepted_out),
+    ]
+
+
 def self_training_round_commands(
     round_index: int,
-    teacher_model_dir,
-    train_data_dir: str | Path,
+    teacher: str,
     unlabeled_input_dir: str | Path,
     work_root: str | Path,
     config: GoATSelfTrainingConfig,
+    base_dataset_id: int = DATASET_ID,
+    config_path: str | Path = "configs/ssl.yaml",
 ) -> list[list[str]]:
-    """Argv list for one self-training round: pseudo-label generation then a student train.
+    """Argv list for one self-training round: pseudo-gen → **filter** → student train.
 
-    The pseudo-labels for this round land under ``<work_root>/round<r>/pseudo`` and the student
-    trains the GoAT dataset/folds via ``nnUNetv2_train``. Dataset id, plans and trainer are left
-    as placeholders the data-pipeline / nnunet-trainer fill — this only sequences the argv.
+    ``teacher`` is the nnU-Net dataset id / results identifier the teacher was trained on (passed
+    to ``nnUNetv2_predict -d``): the seed teacher for round 0, then ``round_dataset_id(base, r-1)``
+    for later rounds (see :func:`self_training_plan`). Pseudo-labels land under
+    ``<work_root>/round<r>/pseudo``; the filter step reads ``round<r>/stats.json`` and writes
+    ``round<r>/accepted.json``; the student then trains on this round's own
+    ``round_dataset_id(base, round_index)`` via :func:`brats2026.nnunet.plan.train_command` (so the
+    ResEnc-L plans are pinned with ``-p``), one command per fold in ``teacher_folds``.
     """
     work_root = Path(work_root)
-    pseudo_output_dir = work_root / f"round{round_index}" / "pseudo"
+    round_dir = work_root / f"round{round_index}"
+    pseudo_output_dir = round_dir / "pseudo"
 
     cmds: list[list[str]] = list(
-        pseudo_label_predict_commands(
-            teacher_model_dir, unlabeled_input_dir, pseudo_output_dir, config
-        )
+        pseudo_label_predict_commands(teacher, unlabeled_input_dir, pseudo_output_dir, config)
+    )
+    cmds.append(
+        pseudo_select_command(round_dir / "stats.json", config_path, round_dir / "accepted.json")
     )
 
-    # SPECIALIST: dataset id / plans / configuration are owned by data-pipeline + ai-specialist.
-    folds = tuple(config.teacher_folds)
-    for fold in folds:
-        cmds.append(
-            [
-                "nnUNetv2_train",
-                "GOAT_DATASET_ID",   # SPECIALIST: nnU-Net dataset id of the labelled+pseudo set
-                "3d_fullres",
-                str(fold),
-                "-tr",
-                "nnUNetTrainerGoAT",
-            ]
-        )
+    dataset_id = round_dataset_id(base_dataset_id, round_index)
+    for fold in tuple(config.teacher_folds):
+        cmds.append(train_command(fold=fold, dataset_id=dataset_id))
     return cmds
-
-
-def student_model_dir(work_root: str | Path, round_index: int) -> str:
-    """Conventional output directory for the student trained in ``round_index``.
-
-    The next round uses this as its teacher (teacher[r] = student[r-1]).
-    """
-    return str(Path(work_root) / f"round{round_index}" / "student")
 
 
 def self_training_plan(
     config: GoATSelfTrainingConfig,
-    teacher_model_dir,
-    train_data_dir: str | Path,
+    seed_teacher: str,
     unlabeled_input_dir: str | Path,
     work_root: str | Path,
+    base_dataset_id: int = DATASET_ID,
+    config_path: str | Path = "configs/ssl.yaml",
 ) -> list[list[list[str]]]:
     """Full bounded self-training plan: one argv-list per round, teacher[r] = student[r-1].
 
-    Round 0 predicts with the seed ``teacher_model_dir``; each subsequent round predicts with
-    the student trained in the previous round. ``n_rounds`` (1 or 2) is a SPECIALIST hook. No
-    command is executed — the human-gated runner consumes this plan.
+    Round 0 predicts with ``seed_teacher`` (the from-scratch inner-dev model); round r>0 predicts
+    with the student trained in round r-1, identified by ``round_dataset_id(base, r-1)`` — the
+    dataset that student's model actually lives under in ``nnUNet_results`` (fixing the previous
+    dangling ``work/round<r>/student`` path that nnU-Net never wrote to). ``n_rounds`` (1 or 2) is
+    a SPECIALIST hook. No command is executed — the human-gated runner consumes this plan.
     """
     rounds: list[list[list[str]]] = []
-    current_teacher = teacher_model_dir
     for r in range(int(config.n_rounds)):
+        teacher = seed_teacher if r == 0 else str(round_dataset_id(base_dataset_id, r - 1))
         rounds.append(
             self_training_round_commands(
-                r, current_teacher, train_data_dir, unlabeled_input_dir, work_root, config
+                r, teacher, unlabeled_input_dir, work_root, config,
+                base_dataset_id=base_dataset_id, config_path=config_path,
             )
         )
-        current_teacher = student_model_dir(work_root, r)
     return rounds
 
 

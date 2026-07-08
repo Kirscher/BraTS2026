@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -10,7 +12,10 @@ from brats2026.ssl import (
     assert_goat_pool,
     case_confidence_score,
     labeled_unlabeled_sampling_plan,
+    load_ssl_config,
     pseudo_label_predict_commands,
+    round_dataset_id,
+    select_from_stats_records,
     select_pseudo_cases,
     self_training_plan,
     self_training_round_commands,
@@ -238,34 +243,70 @@ def test_pseudo_label_commands_use_teacher_folds():
 
 # --- self_training_round_commands / self_training_plan -----------------------------------
 
-def test_round_commands_emit_predict_then_train():
+def test_round_commands_emit_predict_filter_then_train():
     cfg = _full_config(pseudo_use_ensemble=False)
-    cmds = self_training_round_commands(0, "teacher", "/train", "/unlab", "/work", cfg)
-    # at least one predict (pseudo-label) and one train command
+    cmds = self_training_round_commands(0, "teacher", "/unlab", "/work", cfg)
     predicts = [c for c in cmds if c[0] == "nnUNetv2_predict"]
+    selects = [c for c in cmds if c[:2] == ["brats2026", "ssl-select"]]
     trains = [c for c in cmds if c[0] == "nnUNetv2_train"]
     assert predicts
+    assert selects  # the filter step is now IN the plan (was missing)
     assert trains
+    # the train command trains this round's own dataset and pins the ResEnc-L plans with -p
+    assert trains[0][1] == str(round_dataset_id(501, 0))
+    assert "-p" in trains[0]
+
+
+def test_round_commands_order_is_predict_then_filter_then_train():
+    cfg = _full_config(pseudo_use_ensemble=False)
+    cmds = self_training_round_commands(0, "teacher", "/unlab", "/work", cfg)
+    kinds = [c[0] if c[0] != "brats2026" else "ssl-select" for c in cmds]
+    assert kinds.index("nnUNetv2_predict") < kinds.index("ssl-select") < kinds.index("nnUNetv2_train")
 
 
 def test_self_training_plan_single_round():
     cfg = _full_config(n_rounds=1, pseudo_use_ensemble=False)
-    plan = self_training_plan(cfg, teacher_model_dir="teacher0", train_data_dir="/train",
+    plan = self_training_plan(cfg, seed_teacher="teacher0",
                               unlabeled_input_dir="/unlab", work_root="/work")
     assert len(plan) == 1
 
 
-def test_self_training_plan_two_rounds_chains_teacher():
+def test_self_training_plan_two_rounds_chains_teacher_to_prev_dataset():
     cfg = _full_config(n_rounds=2, pseudo_use_ensemble=False)
-    plan = self_training_plan(cfg, teacher_model_dir="teacher0", train_data_dir="/train",
+    plan = self_training_plan(cfg, seed_teacher="teacher0",
                               unlabeled_input_dir="/unlab", work_root="/work")
     assert len(plan) == 2
     # round 0 predicts with the seed teacher
     round0_predict = [c for c in plan[0] if c[0] == "nnUNetv2_predict"][0]
     assert round0_predict[round0_predict.index("-d") + 1] == "teacher0"
-    # round 1 teacher = student trained in round 0 (must NOT be the seed teacher)
+    # round 1 teacher = the student trained in round 0, i.e. round_dataset_id(501, 0)
     round1_predict = [c for c in plan[1] if c[0] == "nnUNetv2_predict"][0]
-    assert round1_predict[round1_predict.index("-d") + 1] != "teacher0"
+    assert round1_predict[round1_predict.index("-d") + 1] == str(round_dataset_id(501, 0))
+
+
+def test_round_dataset_id_is_distinct_per_round():
+    assert round_dataset_id(501, 0) != round_dataset_id(501, 1)
+
+
+def test_select_from_stats_records_applies_filters_and_cohort():
+    cfg = _full_config(per_cohort_pseudo_quota=False)
+    records = [
+        {"case_id": "BraTS-MEN-0001-000", "mean_fg_softmax": 0.95, "n_fg_voxels": 500,
+         "fg_fraction": 0.2, "frac_confident_voxels": 0.9},
+        {"case_id": "BraTS-MEN-0002-000", "mean_fg_softmax": 0.1, "n_fg_voxels": 500,
+         "fg_fraction": 0.2, "frac_confident_voxels": 0.1},  # rejected: low confidence
+    ]
+    selected = select_from_stats_records(records, cfg)
+    assert selected["MEN"] == ["BraTS-MEN-0001-000"]
+
+
+def test_load_ssl_config_reads_repo_yaml():
+    pytest.importorskip("yaml")
+    ssl_yaml = Path(__file__).resolve().parents[2] / "configs" / "ssl.yaml"
+    cfg = load_ssl_config(ssl_yaml)
+    # the repo ssl.yaml is fully resolved -> no unset hooks, folds coerced to a tuple
+    assert unset_hooks(cfg) == []
+    assert isinstance(cfg.teacher_folds, tuple)
 
 
 # --- assert_goat_pool (fatal guards) -----------------------------------------------------

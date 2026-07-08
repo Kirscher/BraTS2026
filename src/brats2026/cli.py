@@ -45,6 +45,26 @@ def cmd_preprocess_mri(args: argparse.Namespace) -> None:
     print(f"Wrote preprocessed cases to {args.output_dir}")
 
 
+def cmd_ssl_select(args: argparse.Namespace) -> None:
+    from .ssl import load_ssl_config, select_from_stats_records
+
+    config = load_ssl_config(args.config)
+    records = json.loads(Path(args.stats_json).read_text(encoding="utf-8"))
+    accepted = select_from_stats_records(records, config)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(accepted, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    n = sum(len(v) for v in accepted.values())
+    print(f"ssl-select: accepted {n} pseudo case(s) across {len(accepted)} cohort(s) -> {args.out}")
+
+
+def cmd_install_trainer(_: argparse.Namespace) -> None:
+    from .nnunet.trainer import GOAT_TRAIN_CONFIG_ENV, install_goat_trainer
+
+    shim = install_goat_trainer()
+    print(f"Installed nnUNetTrainerGoAT discovery shim at {shim}")
+    print(f"Now set ${GOAT_TRAIN_CONFIG_ENV}=<path to a filled configs/train.yaml> before nnUNetv2_train.")
+
+
 def cmd_tasks(_: argparse.Namespace) -> None:
     for key, spec in TASKS.items():
         print(f"{key}: {spec.name} [{spec.kind}]")
@@ -77,6 +97,22 @@ def build_parser() -> argparse.ArgumentParser:
     prep_parser.add_argument("--limit", type=int)
     prep_parser.add_argument("--crop-margin", type=int, default=8)
     prep_parser.set_defaults(func=cmd_preprocess_mri)
+
+    sel_parser = subparsers.add_parser(
+        "ssl-select",
+        help="Filter teacher pseudo-labels by confidence / cohort quota (self-training step).",
+    )
+    sel_parser.add_argument("--stats-json", type=Path, required=True,
+                            help="Per-case CaseStats records (produced from the teacher softmax).")
+    sel_parser.add_argument("--config", type=Path, required=True, help="configs/ssl.yaml")
+    sel_parser.add_argument("--out", type=Path, required=True, help="Accepted cohort→case-ids JSON.")
+    sel_parser.set_defaults(func=cmd_ssl_select)
+
+    install_parser = subparsers.add_parser(
+        "install-trainer",
+        help="Register nnUNetTrainerGoAT on nnU-Net's trainer search path (run once on the HPC).",
+    )
+    install_parser.set_defaults(func=cmd_install_trainer)
 
     return parser
 
