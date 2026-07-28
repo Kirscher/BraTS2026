@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900" width="1240" height="900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .bg    { fill:#FFFFFF; }
+      .title { font-size:23px; font-weight:700; fill:#0F171C; }
+      .sub   { font-size:13px; fill:#657880; }
+      .stage { font-size:15px; font-weight:700; fill:#0F171C; }
+      .body  { font-size:11.5px; fill:#3A4A52; }
+      .mono  { font-size:11px; fill:#3A4A52; font-family:Consolas, monospace; }
+      .chip  { font-size:10px; font-weight:700; letter-spacing:.07em; }
+      .hdr   { font-size:12px; font-weight:700; letter-spacing:.09em; fill:#657880; }
+      .okbx  { fill:#DDEDE4; stroke:#1B6B47; stroke-width:1.5; }
+      .wnbx  { fill:#F7EBD4; stroke:#8A5A00; stroke-width:1.5; }
+      .crbx  { fill:#F6E1DF; stroke:#A32218; stroke-width:1.5; }
+      .panel { fill:#F2F5F6; stroke:#D5DDE0; stroke-width:1; }
+    </style>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#657880"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1240" height="900"/>
+
+  <text class="title" x="40" y="46">BraTS 2026 Task 3 — project state</text>
+  <text class="sub" x="40" y="68">Snapshot 2026-07-27 · branch feat/brats2026-package-build @ 7d0683a · 0 commits ahead of origin</text>
+
+  <!-- deadline strip -->
+  <rect class="panel" x="40" y="88" width="1160" height="62" rx="3"/>
+  <line x1="80" y1="128" x2="1160" y2="128" stroke="#657880" stroke-width="2"/>
+  <circle cx="80" cy="128" r="7" fill="#A32218"/>
+  <text class="chip" x="66" y="112" fill="#A32218">TODAY</text>
+  <text class="mono" x="66" y="146">Jul 27</text>
+  <circle cx="350" cy="128" r="7" fill="#A32218"/>
+  <text class="chip" x="308" y="112" fill="#A32218">SUBMISSION DEADLINE</text>
+  <text class="mono" x="330" y="146">Jul 30</text>
+  <circle cx="700" cy="128" r="5" fill="#657880"/>
+  <text class="mono" x="680" y="146">Aug 6 reviews</text>
+  <circle cx="960" cy="128" r="5" fill="#657880"/>
+  <text class="mono" x="920" y="146">Aug 13 revised paper</text>
+  <circle cx="1150" cy="128" r="5" fill="#657880"/>
+  <text class="mono" x="1108" y="146">Aug 24 final</text>
+  <text class="chip" x="150" y="112" fill="#A32218">3 DAYS</text>
+
+  <!-- ROW 1 -->
+  <text class="hdr" x="40" y="190">PIPELINE STATE</text>
+
+  <rect class="okbx" x="40" y="205" width="360" height="160" rx="4"/>
+  <text class="stage" x="58" y="232">1 · Data conversion</text>
+  <rect x="58" y="242" width="66" height="17" rx="2" fill="#1B6B47"/>
+  <text class="chip" x="66" y="254" fill="#FFFFFF">VERIFIED</text>
+  <text class="body" x="58" y="280">Dataset501_BraTSGoAT — 1351 labelled cases,</text>
+  <text class="body" x="58" y="297">region-based dataset.json (WT/TC/ET), symlinked</text>
+  <text class="body" x="58" y="314">so NAS geometry is preserved bit-for-bit.</text>
+  <text class="body" x="58" y="338" fill="#8A5A00">⚠ Exists on the HPC only — no work/ tree here.</text>
+
+  <rect class="wnbx" x="440" y="205" width="360" height="160" rx="4"/>
+  <text class="stage" x="458" y="232">2 · Training</text>
+  <rect x="458" y="242" width="98" height="17" rx="2" fill="#8A5A00"/>
+  <text class="chip" x="466" y="254" fill="#FFFFFF">RAN, UNTRACEABLE</text>
+  <text class="body" x="458" y="280">Submission 1 scored (id 9773379): a single plain</text>
+  <text class="body" x="458" y="297">nnU-Net v2, no ensemble, no MAE, no SSL.</text>
+  <text class="body" x="458" y="314" fill="#A32218">✗ Hyperparameters never recovered.</text>
+  <text class="body" x="458" y="338" fill="#A32218">✗ configs/train.yaml never stamped (nulls).</text>
+
+  <rect class="wnbx" x="840" y="205" width="360" height="160" rx="4"/>
+  <text class="stage" x="858" y="232">3 · Evaluation</text>
+  <rect x="858" y="242" width="86" height="17" rx="2" fill="#8A5A00"/>
+  <text class="chip" x="866" y="254" fill="#FFFFFF">CODE ONLY</text>
+  <text class="body" x="858" y="280">Dice + HD95 + NSD, legacy and lesion-wise;</text>
+  <text class="body" x="858" y="297">per-cohort and LODO protocol implemented.</text>
+  <text class="body" x="858" y="314" fill="#A32218">✗ LODO estimate never computed once.</text>
+  <text class="body" x="858" y="338" fill="#8A5A00">⚠ NSD tolerance 1.0 mm vs BraTS 0.5 mm.</text>
+
+  <line x1="400" y1="285" x2="437" y2="285" stroke="#657880" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="800" y1="285" x2="837" y2="285" stroke="#657880" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ROW 2 -->
+  <rect class="wnbx" x="40" y="410" width="360" height="160" rx="4"/>
+  <text class="stage" x="58" y="437">4 · Submission container</text>
+  <rect x="58" y="447" width="92" height="17" rx="2" fill="#8A5A00"/>
+  <text class="chip" x="66" y="459" fill="#FFFFFF">NEW, UNBUILT</text>
+  <text class="body" x="58" y="485">entrypoint.py + run_inference.sh + Dockerfile</text>
+  <text class="body" x="58" y="502">written 07-27; 13 unit tests pass on laptop.</text>
+  <text class="body" x="58" y="519" fill="#A32218">✗ Never built — needs docker/weights/.</text>
+  <text class="body" x="58" y="543" fill="#A32218">✗ 8 h budget never profiled.</text>
+
+  <rect class="crbx" x="440" y="410" width="360" height="160" rx="4"/>
+  <text class="stage" x="458" y="437">5 · LNCS short paper</text>
+  <rect x="458" y="447" width="76" height="17" rx="2" fill="#A32218"/>
+  <text class="chip" x="466" y="459" fill="#FFFFFF">BLOCKING</text>
+  <text class="body" x="458" y="485">Skeleton written with real submission-1 scores</text>
+  <text class="body" x="458" y="502">and the 8 mandatory citations pre-loaded.</text>
+  <text class="body" x="458" y="519" fill="#A32218">✗ ~12 TODO markers unresolved.</text>
+  <text class="body" x="458" y="543" fill="#A32218">✗ No paper ⇒ container is not evaluated.</text>
+
+  <rect class="crbx" x="840" y="410" width="360" height="160" rx="4"/>
+  <text class="stage" x="858" y="437">6 · Submit</text>
+  <rect x="858" y="447" width="66" height="17" rx="2" fill="#A32218"/>
+  <text class="chip" x="866" y="459" fill="#FFFFFF">BLOCKED</text>
+  <text class="body" x="858" y="485">Needs all three by Jul 30, 23:59 UTC:</text>
+  <text class="body" x="858" y="502">Docker image · short paper (CMT) ·</text>
+  <text class="body" x="858" y="519">signed copyright form.</text>
+  <text class="body" x="858" y="543" fill="#8A5A00">⚠ Synapse team name must match on both.</text>
+
+  <line x1="400" y1="490" x2="437" y2="490" stroke="#657880" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="800" y1="490" x2="837" y2="490" stroke="#657880" stroke-width="1.6" marker-end="url(#ar)"/>
+  <path d="M1200 285 L1222 285 L1222 388 L20 388 L20 490 L37 490" fill="none" stroke="#657880" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+
+  <!-- blockers -->
+  <text class="hdr" x="40" y="615">CRITICAL PATH — WHAT UNBLOCKS WHAT</text>
+  <rect class="panel" x="40" y="628" width="1160" height="182" rx="3"/>
+
+  <circle cx="70" cy="662" r="12" fill="#A32218"/><text class="chip" x="66" y="666" fill="#FFFFFF">1</text>
+  <text class="body" x="94" y="659" font-weight="700">Stage trained weights into docker/weights/</text>
+  <text class="body" x="94" y="676" fill="#657880">Needs HPC access. Unblocks the container build, and the training log yields the missing hyperparameters.</text>
+
+  <circle cx="70" cy="706" r="12" fill="#A32218"/><text class="chip" x="66" y="710" fill="#FFFFFF">2</text>
+  <text class="body" x="94" y="703" font-weight="700">Recover submission-1 hyperparameters from fold_N/training_log_*.txt and plans.json</text>
+  <text class="body" x="94" y="720" fill="#657880">Unblocks the paper's Methods section, which cannot be written without them.</text>
+
+  <circle cx="70" cy="750" r="12" fill="#8A5A00"/><text class="chip" x="66" y="754" fill="#FFFFFF">3</text>
+  <text class="body" x="94" y="747" font-weight="700">Build the container on Linux + GPU and time it against the 8 h budget</text>
+  <text class="body" x="94" y="764" fill="#657880">Verify: --network none, flat /output, geometry atol=0, nothing written to /input.</text>
+
+  <circle cx="70" cy="792" r="12" fill="#8A5A00"/><text class="chip" x="66" y="796" fill="#FFFFFF">4</text>
+  <text class="body" x="94" y="789" font-weight="700">Resolve the paper TODOs, commit and push the branch, submit all three artefacts</text>
+
+  <!-- legend -->
+  <rect x="40" y="836" width="16" height="14" rx="2" class="okbx"/>
+  <text class="body" x="64" y="848">verified</text>
+  <rect x="150" y="836" width="16" height="14" rx="2" class="wnbx"/>
+  <text class="body" x="174" y="848">exists, unverified</text>
+  <rect x="320" y="836" width="16" height="14" rx="2" class="crbx"/>
+  <text class="body" x="344" y="848">blocking gap</text>
+  <text class="mono" x="470" y="848" fill="#657880">332 tests pass · 2 fail (Windows-only) · nothing committed</text>
+</svg>

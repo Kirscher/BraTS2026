@@ -144,9 +144,9 @@ Le schéma ci-dessous présente l'enchaînement complet. Chaque rectangle vert e
 fichier de code **réellement écrit et testé** ; les rectangles en pointillés sont
 encore à faire. Le flux se lit de haut en bas (Phase 0 → Phase 7).
 
-![Pipeline du code BraTS Task 3 GoAT](pipeline_brats_task3.svg)
+![Pipeline du code BraTS Task 3 GoAT](../schemas/pipeline_brats_task3.svg)
 
-*(Le fichier `pipeline_brats_task3.svg` est dans le même dossier `docs/`. Le SVG
+*(Le fichier `pipeline_brats_task3.svg` est dans le dossier `schemas/`. Le SVG
 s'affiche directement dans GitHub, VS Code et tout navigateur web.)*
 
 L'idée générale : on **part des données brutes** (en haut), on les **recense**, on

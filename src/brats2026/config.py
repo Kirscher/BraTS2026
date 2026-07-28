@@ -28,7 +28,10 @@ from pathlib import Path
 
 # Stay in lockstep with the trainer: the train hook keys ARE the trainer's SPECIALIST_HOOKS.
 # Reused verbatim (never re-listed by hand) so config drift against the code is impossible.
+# Both trainer modules are import-light (stdlib only at module scope; torch / nnU-Net sit behind
+# guarded imports), so importing them here keeps config.py loadable in a bare env.
 from brats2026.nnunet.trainer import SPECIALIST_HOOKS
+from brats2026.nnunet.trainer_v2 import SPECIALIST_HOOKS_V2
 
 # Bump intentionally if the config schema changes (mirrors provenance.FINGERPRINT_SCHEME).
 CONFIG_SCHEMA_VERSION = "brats2026-config/1"
@@ -48,6 +51,11 @@ PROVENANCE_FIELDS: tuple[str, ...] = (
 # with INFER_HOOK_KEYS; the test suite asserts TRAIN_HOOK_KEYS == SPECIALIST_HOOKS as a guard.
 TRAIN_HOOK_KEYS: tuple[str, ...] = SPECIALIST_HOOKS
 
+# Same contract for the v2 trainer (brats2026.nnunet.trainer_v2). Kept SEPARATE from
+# TRAIN_HOOK_KEYS on purpose: configs/train.yaml is validated against kind "train" while a run is
+# in flight, so the v1 tuple must never gain or lose a key.
+TRAIN_V2_HOOK_KEYS: tuple[str, ...] = SPECIALIST_HOOKS_V2
+
 # Inference-time hooks: the knobs the ai-specialist owns in configs/infer.yaml. These mirror
 # brats2026.inference.{postprocess,predict}; the code keeps the mechanism, config the values.
 INFER_HOOK_KEYS: tuple[str, ...] = (
@@ -60,6 +68,7 @@ INFER_HOOK_KEYS: tuple[str, ...] = (
 
 _HOOK_KEYS_BY_KIND: dict[str, tuple[str, ...]] = {
     "train": TRAIN_HOOK_KEYS,
+    "train_v2": TRAIN_V2_HOOK_KEYS,
     "infer": INFER_HOOK_KEYS,
 }
 

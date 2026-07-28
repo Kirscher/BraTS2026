@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1260" viewBox="0 0 1200 1260" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="1260" fill="#f7f8fa"/>
+
+  <text x="40" y="42" font-size="26" font-weight="700" fill="#1c2230">nnUNetTrainerGoATv2 — launch chain, after the build</text>
+  <text x="40" y="66" font-size="14" fill="#5b6170">Every link is now implemented. Two gates remain: the config numbers await approval, and the nnU-Net glue awaits an HPC smoke-test.</text>
+
+  <!-- ============ STAGE 1 ============ -->
+  <rect x="40" y="95" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="95" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="133" font-size="15" font-weight="700" fill="#1c2230">STAGE 1</text>
+  <text x="60" y="155" font-size="12.5" fill="#5b6170">Data (reused from v1)</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="108" width="860" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="131" font-size="13" font-weight="700" fill="#1c2230">convert.py · splits.py · plan.py  →  Dataset501_BraTSGoAT + nnUNetResEncUNetLPlans + 3d_fullres</text>
+  <text x="292" y="149" font-size="10.5" fill="#5b6170">NOTHING to re-run for v2. The warm start is shape-compatible only if the plans are byte-identical to the parent v1 run,</text>
+  <text x="292" y="165" font-size="10.5" fill="#5b6170">so re-planning would silently break it — nnU-Net derives network depth from the patch size in the plans.</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="195" x2="150" y2="227"/></g>
+
+  <!-- ============ STAGE 2 ============ -->
+  <rect x="40" y="229" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="229" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="267" font-size="15" font-weight="700" fill="#1c2230">STAGE 2</text>
+  <text x="60" y="289" font-size="12.5" fill="#5b6170">Trainer discovery</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="242" width="420" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="718" y="242" width="420" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="265" font-size="13" font-weight="700" fill="#1c2230">brats2026 install-trainer-v2   ·   NEW</text>
+  <text x="292" y="283" font-size="10.5" fill="#5b6170">cli.py — reaches install_goat_trainer_v2(), which was</text>
+  <text x="292" y="299" font-size="10.5" fill="#5b6170">previously unreachable from the command line</text>
+  <text x="732" y="265" font-size="13" font-weight="700" fill="#1c2230">variants/brats2026_goat_v2.py</text>
+  <text x="732" y="283" font-size="10.5" fill="#5b6170">2-line import shim; filename distinct from v1's, so a</text>
+  <text x="732" y="299" font-size="10.5" fill="#5b6170">running v1 job keeps the trainer it started with</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="329" x2="150" y2="361"/></g>
+
+  <!-- ============ STAGE 3 ============ -->
+  <rect x="40" y="363" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="363" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="401" font-size="15" font-weight="700" fill="#1c2230">STAGE 3</text>
+  <text x="60" y="423" font-size="12.5" fill="#5b6170">Config gate</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="376" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="376" width="272" height="74" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <rect x="866" y="376" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="399" font-size="13" font-weight="700" fill="#1c2230">config.py kind "train_v2"</text>
+  <text x="292" y="417" font-size="10.5" fill="#5b6170">TRAIN_V2_HOOK_KEYS, 18 hooks</text>
+  <text x="292" y="433" font-size="10.5" fill="#5b6170">refuses an unfilled / unstamped file</text>
+  <text x="586" y="399" font-size="13" font-weight="700" fill="#1c2230">configs/train_v2.yaml  DRAFT</text>
+  <text x="586" y="417" font-size="10.5" fill="#5b6170">schema-valid, all 18 hooks filled</text>
+  <text x="586" y="433" font-size="10.5" fill="#5b6170">NUMBERS AWAIT HUMAN APPROVAL</text>
+  <text x="880" y="399" font-size="13" font-weight="700" fill="#1c2230">stamp-config --kind   ·   FIXED</text>
+  <text x="880" y="417" font-size="10.5" fill="#5b6170">validated "train" unconditionally;</text>
+  <text x="880" y="433" font-size="10.5" fill="#5b6170">now reads the file's own kind</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="463" x2="150" y2="495"/></g>
+
+  <!-- ============ STAGE 4 — GATE ============ -->
+  <rect x="40" y="497" width="1120" height="100" rx="10" fill="#eef0f4" stroke="#c7ccd6"/>
+  <rect x="40" y="497" width="220" height="100" rx="10" fill="#e7eefc" stroke="#3f6fd1"/>
+  <text x="60" y="535" font-size="15" font-weight="700" fill="#1c2230">STAGE 4 ⚠</text>
+  <text x="60" y="557" font-size="12.5" fill="#5b6170">Smoke test (gate)</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="510" width="860" height="74" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+  </g>
+  <text x="292" y="533" font-size="13" font-weight="700" fill="#1c2230">Build the transform pipeline once on the HPC before committing GPU time — docs/RUN_HPC_V2.md §4</text>
+  <text x="292" y="551" font-size="10.5" fill="#5b6170">The pure functions are unit-tested, but the batchgeneratorsv2 glue runs ONLY where nnU-Net is installed — never in CI, never on the</text>
+  <text x="292" y="567" font-size="10.5" fill="#5b6170">laptop. Look for "[GoATv2] augmentation retuned: {…}" listing every da_* hook; a "matched no transform" warning means an override is inert.</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="597" x2="150" y2="629"/></g>
+
+  <!-- ============ STAGE 5 ============ -->
+  <rect x="40" y="631" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="631" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="669" font-size="15" font-weight="700" fill="#1c2230">STAGE 5</text>
+  <text x="60" y="691" font-size="12.5" fill="#5b6170">Launch</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="644" width="420" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="718" y="644" width="420" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="667" font-size="13" font-weight="700" fill="#1c2230">plan.train_v2_command()   ·   NEW</text>
+  <text x="292" y="685" font-size="10.5" fill="#5b6170">GOAT_TRAINER_V2 constant — the trainer name is never</text>
+  <text x="292" y="701" font-size="10.5" fill="#5b6170">hand-typed, where a typo costs a queue wait</text>
+  <text x="732" y="667" font-size="13" font-weight="700" fill="#1c2230">BRATS_GOAT_V2_TRAIN_CONFIG</text>
+  <text x="732" y="685" font-size="10.5" fill="#5b6170">distinct from v1's var, so both live in one shell without</text>
+  <text x="732" y="701" font-size="10.5" fill="#5b6170">the v2 config hijacking a running v1 job</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="731" x2="150" y2="763"/></g>
+
+  <!-- ============ STAGE 6 ============ -->
+  <rect x="40" y="765" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="765" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="803" font-size="15" font-weight="700" fill="#1c2230">STAGE 6</text>
+  <text x="60" y="825" font-size="12.5" fill="#5b6170">initialize()</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="778" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="778" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="866" y="778" width="272" height="74" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="801" font-size="13" font-weight="700" fill="#1c2230">resolve_v2_config()   ·   NEW</text>
+  <text x="292" y="819" font-size="10.5" fill="#5b6170">class attr wins, env var is fallback</text>
+  <text x="292" y="835" font-size="10.5" fill="#5b6170">split out so it is testable</text>
+  <text x="586" y="801" font-size="13" font-weight="700" fill="#1c2230">apply_goat_v2_config()</text>
+  <text x="586" y="819" font-size="10.5" fill="#5b6170">lr / wd / epochs / oversample</text>
+  <text x="586" y="835" font-size="10.5" fill="#5b6170">runs BEFORE super().initialize()</text>
+  <text x="880" y="801" font-size="13" font-weight="700" fill="#1c2230">class nnUNetTrainerGoATv2   ·   NEW</text>
+  <text x="880" y="819" font-size="10.5" fill="#5b6170">written; glue unverified until the</text>
+  <text x="880" y="835" font-size="10.5" fill="#5b6170">stage-4 smoke test passes</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="865" x2="150" y2="897"/></g>
+
+  <!-- ============ STAGE 7 ============ -->
+  <rect x="40" y="899" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="899" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="937" font-size="15" font-weight="700" fill="#1c2230">STAGE 7</text>
+  <text x="60" y="959" font-size="12.5" fill="#5b6170">Warm start + DA</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="912" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="912" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="866" y="912" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="935" font-size="13" font-weight="700" fill="#1c2230">load_warm_start_weights()   ·   NEW</text>
+  <text x="292" y="953" font-size="10.5" fill="#5b6170">plans the transfer on shapes, then</text>
+  <text x="292" y="969" font-size="10.5" fill="#5b6170">RAISES rather than random-init</text>
+  <text x="586" y="935" font-size="13" font-weight="700" fill="#1c2230">retune_augmentation()   ·   NEW</text>
+  <text x="586" y="953" font-size="10.5" fill="#5b6170">overrides nnU-Net's 7 default DA</text>
+  <text x="586" y="969" font-size="10.5" fill="#5b6170">probabilities + the scaling range</text>
+  <text x="880" y="935" font-size="13" font-weight="700" fill="#1c2230">bias_field_multiplier()   ·   NEW</text>
+  <text x="880" y="953" font-size="10.5" fill="#5b6170">exp(mean poly) — positive, smooth,</text>
+  <text x="880" y="969" font-size="10.5" fill="#5b6170">identity at zero coefficients</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="999" x2="150" y2="1031"/></g>
+
+  <!-- ============ STAGE 8 ============ -->
+  <rect x="40" y="1033" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="1033" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="1071" font-size="15" font-weight="700" fill="#1c2230">STAGE 8</text>
+  <text x="60" y="1093" font-size="12.5" fill="#5b6170">Results + scoring</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="1046" width="860" height="74" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="1069" font-size="13" font-weight="700" fill="#1c2230">nnUNet_results/…/nnUNetTrainerGoATv2__nnUNetResEncUNetLPlans__3d_fullres/fold_N/   —  nothing run yet</text>
+  <text x="292" y="1087" font-size="10.5" fill="#5b6170">Must be scored by validation-metrics on the SAME fold as its parent v1 run, or the comparison is meaningless. The metric that</text>
+  <text x="292" y="1103" font-size="10.5" fill="#5b6170">decides is WORST-COHORT, not mean: a v2 that raises the mean while lowering the worst cohort has failed on its own thesis.</text>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="60" y="1164" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+  <text x="90" y="1177" font-size="12" fill="#5b6170">implemented &amp; unit-tested</text>
+  <rect x="330" y="1164" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  <text x="360" y="1177" font-size="12" fill="#5b6170">written, gated on a human or an HPC check</text>
+  <rect x="690" y="1164" width="22" height="16" rx="4" fill="#e7eefc" stroke="#3f6fd1"/>
+  <text x="720" y="1177" font-size="12" fill="#5b6170">mandatory gate</text>
+  <rect x="880" y="1164" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  <text x="910" y="1177" font-size="12" fill="#5b6170">not produced yet (needs a run)</text>
+
+  <text x="60" y="1218" font-size="11" fill="#8a90a0">Test suite: 44 tests in tests/nnunet/test_trainer_v2.py, all passing; 376 passing repo-wide (2 known Windows-only failures, pre-existing).</text>
+  <text x="60" y="1236" font-size="11" fill="#8a90a0">nnU-Net default DA probabilities verified against nnUNetTrainer.py on MIC-DKFZ/nnUNet master — read 2026-07-29.</text>
+</svg>

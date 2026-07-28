@@ -16,8 +16,12 @@ RESENC_L_PLANNER = "nnUNetPlannerResEncL"
 RESENC_L_PLANS = "nnUNetResEncUNetLPlans"
 DEFAULT_CONFIG = "3d_fullres"
 
-# Our custom trainer (scaffold lives in trainer.py).
+# Our custom trainers. v1 lives in trainer.py, v2 in trainer_v2.py. Kept as separate constants
+# (not a default + override) because nnU-Net derives its results directory from
+# "<trainer>__<plans>__<configuration>": the distinct name is what stops a v2 run from writing
+# into the fold directories of a v1 run that is still training.
 GOAT_TRAINER = "nnUNetTrainerGoAT"
+GOAT_TRAINER_V2 = "nnUNetTrainerGoATv2"
 
 
 def nnunet_env(work_dir: Path) -> dict[str, str]:
@@ -66,3 +70,15 @@ def train_command(
 def kfold_train_commands(folds: int = 5, **kwargs) -> list[list[str]]:
     """Launch commands for the standard K-fold cross-validation (Phase 3)."""
     return [train_command(fold=i, **kwargs) for i in range(folds)]
+
+
+def train_v2_command(fold: int | str, **kwargs) -> list[str]:
+    """Build a single ``nnUNetv2_train`` argv for the **v2** trainer.
+
+    A thin wrapper over :func:`train_command` that swaps in :data:`GOAT_TRAINER_V2`, so the v2
+    trainer name is never hand-typed on the HPC (a typo there resolves to a missing trainer, or
+    worse to v1, after the queue wait). ``plans`` and ``configuration`` must stay identical to the
+    v1 run being warm-started from, or the checkpoint's shapes will not match.
+    """
+    kwargs.setdefault("trainer", GOAT_TRAINER_V2)
+    return train_command(fold=fold, **kwargs)

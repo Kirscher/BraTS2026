@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1200" height="820" fill="#f7f8fa"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <marker id="arrowd" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#6a5acd"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <text x="40" y="42" font-size="24" font-weight="700" fill="#1c2230">Stage 1 — AutoencoderKL module (src/brats2026/synthesis/autoencoder.py)</text>
+  <text x="40" y="66" font-size="13.5" fill="#5b6170">Pure numpy cores tested &amp; green · torch forward/training_step = NotImplementedError scaffold for Opus 4.8 · 17 hooks null (ai-specialist)</text>
+
+  <!-- LEFT SPINE: config -> gated module instance -->
+  <text x="60" y="100" font-size="13" font-weight="700" fill="#8a90a0">CONFIG → GATED MODULE INSTANCE</text>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="110" width="400" height="60" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+    <text x="76" y="132" font-size="13" font-weight="700" fill="#1c2230">configs/synthesis/autoencoder.yaml</text>
+    <text x="76" y="149" font-size="10.5" fill="#5b6170">kind: synthesis-ae · provenance block</text>
+    <text x="76" y="164" font-size="10.5" fill="#5b6170">17 # SPECIALIST hooks = null (ai-specialist fills)</text>
+  </g>
+  <g stroke="#3a3f4b" stroke-width="2.2" marker-end="url(#arrow)"><line x1="260" y1="170" x2="260" y2="204"/></g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="204" width="400" height="60" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="76" y="226" font-size="13" font-weight="700" fill="#1c2230">load_ae_config(path)</text>
+    <text x="76" y="243" font-size="10.5" fill="#5b6170">reads yaml → AutoencoderKLConfig</text>
+    <text x="76" y="258" font-size="10.5" fill="#5b6170">coerces list→tuple: patch_size, channels, attention_levels</text>
+  </g>
+  <g stroke="#3a3f4b" stroke-width="2.2" marker-end="url(#arrow)"><line x1="260" y1="264" x2="260" y2="298"/></g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="298" width="400" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="76" y="320" font-size="13" font-weight="700" fill="#1c2230">@dataclass AutoencoderKLConfig</text>
+    <text x="76" y="337" font-size="10.5" fill="#5b6170">17 hooks = None (patch_size, num_downsamplings, latent_channels,</text>
+    <text x="76" y="352" font-size="10.5" fill="#5b6170">channels, kl/perceptual/adversarial_weight…) + fixed in_channels=4, spatial_dims=3</text>
+  </g>
+  <g stroke="#3a3f4b" stroke-width="2.2" marker-end="url(#arrow)"><line x1="260" y1="362" x2="260" y2="396"/></g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="396" width="400" height="60" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="76" y="418" font-size="13" font-weight="700" fill="#1c2230">assert_configured / unset_hooks</text>
+    <text x="76" y="435" font-size="10.5" fill="#5b6170">raises listing hooks still None — the launch gate</text>
+    <text x="76" y="450" font-size="10.5" fill="#5b6170">(non-hook data facts excluded, like ssl allow_validation_pool)</text>
+  </g>
+  <g stroke="#3a3f4b" stroke-width="2.2" marker-end="url(#arrow)"><line x1="260" y1="456" x2="260" y2="490"/></g>
+
+  <g filter="url(#soft)">
+    <rect x="60" y="490" width="400" height="92" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <text x="76" y="512" font-size="13" font-weight="700" fill="#1c2230">GoATAutoencoderKL(config, autoencoder, discriminator)</text>
+    <text x="76" y="530" font-size="10.5" fill="#5b6170">nn.Module · __init__: assert_configured(config) + store injected</text>
+    <text x="76" y="545" font-size="10.5" fill="#5b6170">MONAI AutoencoderKL + patch-GAN (torch-guarded; None if no torch)</text>
+    <text x="76" y="565" font-size="11" font-weight="700" fill="#b3541e">forward(x) / training_step(batch) → NotImplementedError</text>
+  </g>
+
+  <!-- RIGHT: pure tested helpers -->
+  <text x="540" y="100" font-size="13" font-weight="700" fill="#8a90a0">PURE NUMPY HELPERS — tested, no torch</text>
+
+  <rect x="540" y="110" width="620" height="252" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <text x="558" y="132" font-size="12.5" font-weight="700" fill="#5b6170">Latent geometry (consumed by Stage 2 to size its latent)</text>
+  <g filter="url(#soft)">
+    <rect x="558" y="142" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="163" font-size="11.5" fill="#1c2230"><tspan font-weight="700">downsample_factor(n)</tspan> → 2**n  (raises on negative)</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="558" y="182" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="203" font-size="11.5" fill="#1c2230"><tspan font-weight="700">latent_spatial_shape(vol, factor)</tspan> → axis // factor  (raises if not divisible)</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="558" y="222" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="243" font-size="11.5" fill="#1c2230"><tspan font-weight="700">num_latent_elements(latent_channels, latent_spatial)</tspan> → product</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="558" y="262" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="283" font-size="11.5" fill="#1c2230"><tspan font-weight="700">latent_shape_from_config(config, vol)</tspan> → (latent_channels, D/f, H/f, W/f)</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="558" y="302" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="323" font-size="11.5" fill="#1c2230"><tspan font-weight="700">assert_patch_divisible(patch, factor)</tspan> — patch aligned to nnU-Net plan</text>
+  </g>
+
+  <rect x="540" y="380" width="620" height="118" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <text x="558" y="402" font-size="12.5" font-weight="700" fill="#5b6170">Loss building blocks (Opus wires into training_step)</text>
+  <g filter="url(#soft)">
+    <rect x="558" y="412" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="433" font-size="11.5" fill="#1c2230"><tspan font-weight="700">reconstruction_l1(pred, target)</tspan> → mean |pred − target|</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="558" y="452" width="584" height="34" rx="6" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="572" y="473" font-size="11.5" fill="#1c2230"><tspan font-weight="700">kl_divergence_standard_normal(mu, logvar)</tspan> → 0.5·mean(mu²+e^logvar−1−logvar)</text>
+  </g>
+
+  <!-- cross links (planned wiring) -->
+  <g stroke="#6a5acd" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrowd)"><line x1="460" y1="330" x2="558" y2="279"/></g>
+  <text x="470" y="300" font-size="10" fill="#6a5acd">num_downsamplings, latent_channels</text>
+  <g stroke="#6a5acd" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrowd)"><line x1="558" y1="469" x2="462" y2="540"/></g>
+  <text x="470" y="510" font-size="10" fill="#6a5acd">Opus wires</text>
+
+  <!-- OPUS wiring banner -->
+  <g filter="url(#soft)">
+    <rect x="60" y="620" width="1100" height="72" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <text x="80" y="644" font-size="12.5" font-weight="700" fill="#1c2230">OPUS 4.8 hard-codes (the NotImplementedError bodies):</text>
+    <text x="80" y="664" font-size="11.5" fill="#5b6170">build MONAI AutoencoderKL + patch-GAN from config · forward = encode→decode (recon, z_mu, z_sigma) · loss = reconstruction_l1 + LPIPS·perceptual_weight + adversarial_weight·GAN + kl_weight·KL</text>
+    <text x="80" y="682" font-size="11.5" fill="#5b6170">training_step = generator/discriminator alternation (discriminator_start_epoch) · then FREEZE the AE for Stage 2 / Stage 3 · ai-specialist fills the 17 null hooks post-fingerprint</text>
+  </g>
+
+  <!-- LEGEND -->
+  <rect x="120" y="730" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+  <text x="150" y="743" font-size="12" fill="#5b6170">tested &amp; green (no torch)</text>
+  <rect x="360" y="730" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  <text x="390" y="743" font-size="12" fill="#5b6170">scaffold — NotImplementedError</text>
+  <rect x="650" y="730" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  <text x="680" y="743" font-size="12" fill="#5b6170">planned wiring (Opus 4.8)</text>
+  <rect x="900" y="730" width="22" height="16" rx="4" fill="#e7eefc" stroke="#3f6fd1"/>
+  <text x="930" y="743" font-size="12" fill="#5b6170">config / data</text>
+</svg>

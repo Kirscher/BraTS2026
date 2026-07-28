@@ -1,0 +1,84 @@
+# BraTS 2026 Task 3 (GoAT) — Synthesis Stage-3 config (mask geometry + pool sizing).
+# Resolves the 8 ``# SPECIALIST:`` hooks of SyntheticMaskConfig (mask_* keys) and the 4
+# ``# SPECIALIST:`` hooks of SynthesisPoolConfig (pool keys) in
+# src/brats2026/synthesis/{masks.py, pipeline.py}. Stage 3 of the DiffTumor track:
+# sample concentric NCR/ED/ET masks, place them on healthy GoAT tissue, generate cases
+# with the frozen Stage-1 AE + Stage-2 diffusion, then build Dataset701 and train.
+#
+# POOL SIZING IS A RATIO, not a fixed count: `synthetic_ratio` sets #synthetic / #labelled
+# (found by sweep, ~0.5-1.0x real => on the order of ~500-1300 cases for the current GoAT
+# labelled set), and the budget is allocated BY COHORT DEFICIT (rarer cohorts get more)
+# with an optional ET emphasis on under-represented cohorts — NOT uniformly. Counts are an
+# INPUT from the data-pipeline ledger; this file never hardcodes them.
+#
+# From-scratch, GoAT-only data. The expensive train-launch stays behind the human gate;
+# this file only proposes. Every hook is null until the ai-specialist fills it against the
+# inner-dev reports (never the outer LODO fold).
+kind: synthesis
+provenance:
+  git_sha: null
+  # Fill from the data-pipeline ledger (provenance.fingerprint_from_ledger) of the GoAT
+  # healthy-canvas + labelled set BEFORE any real run. null = not yet certified;
+  # compliance-guard must refuse a launch while this is null.
+  dataset_fingerprint: null
+  seed: 20260725          # date-derived, deterministic & traceable (matches the `seed`/`mask_seed` hooks)
+  parent_run_id: null     # run-id this config was derived from (null = fresh root)
+  date: 2026-07-25
+  config_schema_version: 1
+
+# === Mask geometry (SyntheticMaskConfig; mask_* keys) =============================
+mask_radius_range_mm: null
+# SPECIALIST: (min, max) overall tumour radius in mm, sampled per case (list [lo, hi],
+# coerced to a tuple). Choose to span the plausible GoAT lesion-size range across cohorts
+# (pediatric/meningioma/glioma/met differ). Kept in mm so it is spacing-independent.
+
+mask_et_core_fraction: null
+# SPECIALIST: enhancing-core (ET=3) radius as a fraction of the overall radius R.
+# Reference ~0.3-0.5. Must satisfy et_core + ncr <= 1.
+
+mask_ncr_fraction: null
+# SPECIALIST: necrotic-shell (NCR=1) thickness as a fraction of R. et_core + ncr <= 1
+# (the ED rim fills the remainder out to R).
+
+mask_ed_rim_fraction: null
+# SPECIALIST: edema-rim (ED=2) thickness as a fraction of R. Aim et_core + ncr + ed ~= 1
+# so the concentric regions tile the lesion. (ED is drawn as the remainder out to R.)
+
+mask_irregularity: null
+# SPECIALIST: boundary irregularity, 0 = clean ellipsoid, higher = more lobulated.
+# Reference ~0-1. Reserved boundary-shaping knob; the tested core is the nested concentric
+# draw, which must stay ET subset TC subset WT regardless.
+
+mask_n_blobs: null
+# SPECIALIST: number of merged sub-blobs for a multi-focal appearance. Reference ~1-3.
+
+mask_margin_mm: null
+# SPECIALIST: minimum distance (mm) a synthetic lesion must keep from the real tumour and
+# the brain edge, so it always lands on genuinely healthy tissue.
+
+mask_seed: null
+# SPECIALIST: RNG seed for the geometry sampling / placement (mirrors provenance.seed).
+
+# mask_placement_mode: healthy_anywhere
+# CHOICE over PLACEMENT_MODES = (healthy_anywhere, contralateral) — a mechanism switch, NOT
+# a tuned hook. Left commented so the code default (healthy_anywhere) applies; set to
+# `contralateral` to force placement in the hemisphere opposite the real tumour.
+
+# === Pool sizing / allocation (SynthesisPoolConfig; pool keys) ====================
+synthetic_ratio: null
+# SPECIALIST: #synthetic / #labelled, found by sweep. Reference ~0.5-1.0x real (roughly
+# ~500-1300 cases for the current labelled set). Sizing is a RATIO, not a count.
+
+per_cohort_quota: null
+# SPECIALIST: if true, allocate the budget across cohorts by deficit-vs-largest (rarer
+# cohorts get more, serving the worst-cohort objective); if false, one undifferentiated
+# generation lump.
+
+et_emphasis: null
+# SPECIALIST: >1 tilts the per-cohort budget further toward under-represented cohorts
+# (where hard enhancing-tumour examples are scarcest). Reference ~1.0-2.0; 1.0 = pure
+# deficit weighting.
+
+seed: null
+# SPECIALIST: RNG seed for generation / provenance (mirrors provenance.seed). Date-derived
+# so the whole Stage-3 pool is reproducible from scratch.

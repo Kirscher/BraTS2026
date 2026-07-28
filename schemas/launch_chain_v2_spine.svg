@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1130" viewBox="0 0 1200 1130" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="1130" fill="#f7f8fa"/>
+
+  <text x="40" y="42" font-size="26" font-weight="700" fill="#1c2230">nnUNetTrainerGoATv2 — the launch chain</text>
+  <text x="40" y="66" font-size="14" fill="#5b6170">Style A · vertical phase-spine. Every step from raw data to a written checkpoint, with the real build status of each link.</text>
+
+  <!-- ============ STAGE 1 ============ -->
+  <rect x="40" y="95" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="95" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="133" font-size="15" font-weight="700" fill="#1c2230">STAGE 1</text>
+  <text x="60" y="155" font-size="12.5" fill="#5b6170">Data → nnU-Net raw</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="108" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="108" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="866" y="108" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="292" y="131" font-size="13" font-weight="700" fill="#1c2230">nnunet/convert.py</text>
+  <text x="292" y="149" font-size="10.5" fill="#5b6170">→ nnUNet_raw/Dataset501_BraTSGoAT</text>
+  <text x="292" y="165" font-size="10.5" fill="#5b6170">labels NCR=1  ED=2  ET=3</text>
+  <text x="586" y="131" font-size="13" font-weight="700" fill="#1c2230">nnunet/splits.py</text>
+  <text x="586" y="149" font-size="10.5" fill="#5b6170">→ splits_final.json (K-fold / LODO)</text>
+  <text x="586" y="165" font-size="10.5" fill="#8a90a0">cohorts read UNK on current ids</text>
+  <text x="880" y="131" font-size="13" font-weight="700" fill="#1c2230">nnunet/plan.py</text>
+  <text x="880" y="149" font-size="10.5" fill="#5b6170">nnUNetv2_plan_and_preprocess</text>
+  <text x="880" y="165" font-size="10.5" fill="#5b6170">-pl nnUNetPlannerResEncL</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="195" x2="150" y2="227"/></g>
+
+  <!-- ============ STAGE 2 ============ -->
+  <rect x="40" y="229" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="229" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="267" font-size="15" font-weight="700" fill="#1c2230">STAGE 2</text>
+  <text x="60" y="289" font-size="12.5" fill="#5b6170">Trainer discovery</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="242" width="420" height="74" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <rect x="718" y="242" width="420" height="74" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="265" font-size="13" font-weight="700" fill="#1c2230">install_goat_trainer_v2()   ·   trainer_v2.py:275</text>
+  <text x="292" y="283" font-size="10.5" fill="#5b6170">writes brats2026_goat_v2.py into nnunetv2/.../nnUNetTrainer/variants/</text>
+  <text x="292" y="299" font-size="10.5" fill="#5b6170">filename distinct from the v1 shim — cannot clobber the live run</text>
+  <text x="732" y="265" font-size="13" font-weight="700" fill="#1c2230">CLI  brats2026 install-trainer-v2</text>
+  <text x="732" y="283" font-size="10.5" fill="#5b6170">absent from cli.py — only install-trainer (v1) exists, line 242</text>
+  <text x="732" y="299" font-size="10.5" fill="#5b6170">so install_goat_trainer_v2() is unreachable from the CLI</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="329" x2="150" y2="361"/></g>
+
+  <!-- ============ STAGE 3 ============ -->
+  <rect x="40" y="363" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="363" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="401" font-size="15" font-weight="700" fill="#1c2230">STAGE 3</text>
+  <text x="60" y="423" font-size="12.5" fill="#5b6170">Config gate</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="376" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="376" width="272" height="74" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <rect x="866" y="376" width="272" height="74" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="399" font-size="13" font-weight="700" fill="#1c2230">config.py TRAIN_V2_HOOK_KEYS</text>
+  <text x="292" y="417" font-size="10.5" fill="#5b6170">kind "train_v2" registered, line 57</text>
+  <text x="292" y="433" font-size="10.5" fill="#5b6170">= SPECIALIST_HOOKS_V2 (18 hooks)</text>
+  <text x="586" y="399" font-size="13" font-weight="700" fill="#1c2230">configs/train_v2.yaml</text>
+  <text x="586" y="417" font-size="10.5" fill="#5b6170">NEVER EMITTED — no file on disk</text>
+  <text x="586" y="433" font-size="10.5" fill="#8a90a0">make_template("train_v2") works</text>
+  <text x="880" y="399" font-size="13" font-weight="700" fill="#1c2230">brats2026 stamp-config</text>
+  <text x="880" y="417" font-size="10.5" fill="#5b6170">binds git_sha / date / fingerprint</text>
+  <text x="880" y="433" font-size="10.5" fill="#5b6170">exists, but not v2-aware yet</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="463" x2="150" y2="495"/></g>
+
+  <!-- ============ STAGE 4 ============ -->
+  <rect x="40" y="497" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="497" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="535" font-size="15" font-weight="700" fill="#1c2230">STAGE 4</text>
+  <text x="60" y="557" font-size="12.5" fill="#5b6170">Launch on the HPC</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="510" width="420" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="718" y="510" width="420" height="74" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="533" font-size="13" font-weight="700" fill="#1c2230">GOAT_V2_TRAIN_CONFIG_ENV</text>
+  <text x="292" y="551" font-size="10.5" fill="#5b6170">export BRATS_GOAT_V2_TRAIN_CONFIG=configs/train_v2.yaml</text>
+  <text x="292" y="567" font-size="10.5" fill="#5b6170">distinct from the v1 var — both exportable in one shell</text>
+  <text x="732" y="533" font-size="13" font-weight="700" fill="#1c2230">nnUNetv2_train 501 3d_fullres N -tr nnUNetTrainerGoATv2</text>
+  <text x="732" y="551" font-size="10.5" fill="#5b6170">plan.py:20 hardcodes GOAT_TRAINER = "nnUNetTrainerGoAT"</text>
+  <text x="732" y="567" font-size="10.5" fill="#5b6170">no GOAT_TRAINER_V2 constant — argv must be hand-written</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="597" x2="150" y2="629"/></g>
+
+  <!-- ============ STAGE 5 ============ -->
+  <rect x="40" y="631" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="631" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="669" font-size="15" font-weight="700" fill="#1c2230">STAGE 5</text>
+  <text x="60" y="691" font-size="12.5" fill="#5b6170">initialize()</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="644" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="644" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="866" y="644" width="272" height="74" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="667" font-size="13" font-weight="700" fill="#1c2230">load_goat_v2_config()</text>
+  <text x="292" y="685" font-size="10.5" fill="#5b6170">assert_valid_config(cfg, "train_v2")</text>
+  <text x="292" y="701" font-size="10.5" fill="#5b6170">refuses unstamped / unfilled yaml</text>
+  <text x="586" y="667" font-size="13" font-weight="700" fill="#1c2230">apply_goat_v2_config()</text>
+  <text x="586" y="685" font-size="10.5" fill="#5b6170">lr / wd / epochs / oversample</text>
+  <text x="586" y="701" font-size="10.5" fill="#5b6170">MUST precede super().initialize()</text>
+  <text x="880" y="667" font-size="13" font-weight="700" fill="#1c2230">class nnUNetTrainerGoATv2</text>
+  <text x="880" y="685" font-size="10.5" fill="#5b6170">NEVER DEFINED — trainer_v2.py</text>
+  <text x="880" y="701" font-size="10.5" fill="#5b6170">ends line 289 at the shim writer</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="731" x2="150" y2="763"/></g>
+
+  <!-- ============ STAGE 6 ============ -->
+  <rect x="40" y="765" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="765" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="803" font-size="15" font-weight="700" fill="#1c2230">STAGE 6</text>
+  <text x="60" y="825" font-size="12.5" fill="#5b6170">Warm start + DA</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="778" width="272" height="74" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="572" y="778" width="272" height="74" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+    <rect x="866" y="778" width="272" height="74" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="801" font-size="13" font-weight="700" fill="#1c2230">plan_weight_transfer()</text>
+  <text x="292" y="819" font-size="10.5" fill="#5b6170">shape-only, torch-free, testable</text>
+  <text x="292" y="835" font-size="10.5" fill="#5b6170">blocks silent random-init fallback</text>
+  <text x="586" y="801" font-size="13" font-weight="700" fill="#1c2230">get_training_transforms()</text>
+  <text x="586" y="819" font-size="10.5" fill="#5b6170">override never written</text>
+  <text x="586" y="835" font-size="10.5" fill="#5b6170">10 da_* hooks stay unconsumed</text>
+  <text x="880" y="801" font-size="13" font-weight="700" fill="#1c2230">bias_field_multiplier()</text>
+  <text x="880" y="819" font-size="10.5" fill="#5b6170">MISSING — the actual v2 novelty</text>
+  <text x="880" y="835" font-size="10.5" fill="#5b6170">6 tests import it → 32 fail to load</text>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="865" x2="150" y2="897"/></g>
+
+  <!-- ============ STAGE 7 ============ -->
+  <rect x="40" y="899" width="1120" height="100" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="899" width="220" height="100" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="937" font-size="15" font-weight="700" fill="#1c2230">STAGE 7</text>
+  <text x="60" y="959" font-size="12.5" fill="#5b6170">Results on disk</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="912" width="860" height="74" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  </g>
+  <text x="292" y="935" font-size="13" font-weight="700" fill="#1c2230">work/nnUNet_results/Dataset501_BraTSGoAT/nnUNetTrainerGoATv2__nnUNetResEncUNetLPlans__3d_fullres/fold_N/</text>
+  <text x="292" y="953" font-size="10.5" fill="#5b6170">nnU-Net derives this directory from &lt;trainer&gt;__&lt;plans&gt;__&lt;configuration&gt;, so the distinct class name is what keeps v2 output</text>
+  <text x="292" y="969" font-size="10.5" fill="#5b6170">from colliding with the v1 folds still training. Downstream: inference-packager reads it as an ensemble member in configs/infer.yaml.</text>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="60" y="1030" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+  <text x="90" y="1043" font-size="12" fill="#5b6170">built &amp; tested</text>
+  <rect x="300" y="1030" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  <text x="330" y="1043" font-size="12" fill="#5b6170">exists, not wired up</text>
+  <rect x="570" y="1030" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  <text x="600" y="1043" font-size="12" fill="#5b6170">planned / never written</text>
+  <rect x="860" y="1030" width="22" height="16" rx="4" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  <text x="890" y="1043" font-size="12" fill="#5b6170">blocked — breaks the chain</text>
+
+  <text x="60" y="1085" font-size="11" fill="#8a90a0">Grounded in trainer_v2.py (289 lines), test_trainer_v2.py (32 tests, currently a collection error), config.py, plan.py, cli.py — read 2026-07-28.</text>
+</svg>

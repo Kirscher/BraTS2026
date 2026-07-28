@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="930" viewBox="0 0 1440 930" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="930" fill="#f7f8fa"/>
+
+  <text x="40" y="42" font-size="26" font-weight="700" fill="#1c2230">nnUNetTrainerGoATv2 — what blocks the launch</text>
+  <text x="40" y="66" font-size="14" fill="#5b6170">Style C · dependency tree. The goal at the top, the four requirements it rests on, and the leaf that is actually missing under each.</text>
+
+  <!-- ============ ROOT ============ -->
+  <g filter="url(#soft)">
+    <rect x="560" y="100" width="320" height="64" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="580" y="126" font-size="15" font-weight="700" fill="#1c2230">GOAL — one v2 fold training</text>
+  <text x="580" y="148" font-size="11" fill="#5b6170">blocked on 4 leaves, 3 of them one-file fixes</text>
+
+  <!-- root -> branch elbows -->
+  <g stroke="#3a3f4b" stroke-width="2">
+    <line x1="720" y1="164" x2="720" y2="205"/>
+    <line x1="190" y1="205" x2="1240" y2="205"/>
+  </g>
+  <g stroke="#3a3f4b" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="190" y1="205" x2="190" y2="236"/>
+    <line x1="540" y1="205" x2="540" y2="236"/>
+    <line x1="890" y1="205" x2="890" y2="236"/>
+    <line x1="1240" y1="205" x2="1240" y2="236"/>
+  </g>
+
+  <!-- ============ BRANCH A ============ -->
+  <g filter="url(#soft)"><rect x="40" y="240" width="300" height="76" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/></g>
+  <text x="58" y="266" font-size="14" font-weight="700" fill="#1c2230">A · trainer resolvable by name</text>
+  <text x="58" y="286" font-size="10.5" fill="#5b6170">nnU-Net looks up -tr by scanning only its</text>
+  <text x="58" y="302" font-size="10.5" fill="#5b6170">own package tree, so a shim is required</text>
+
+  <g filter="url(#soft)">
+    <rect x="40" y="360" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="40" y="440" width="300" height="64" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <rect x="40" y="520" width="300" height="64" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="58" y="386" font-size="12" font-weight="700" fill="#1c2230">install_goat_trainer_v2()</text>
+  <text x="58" y="406" font-size="10.5" fill="#5b6170">trainer_v2.py:275 — writes the shim</text>
+  <text x="58" y="466" font-size="12" font-weight="700" fill="#1c2230">CLI install-trainer-v2</text>
+  <text x="58" y="486" font-size="10.5" fill="#5b6170">absent from cli.py (v1 only, line 242)</text>
+  <text x="58" y="546" font-size="12" font-weight="700" fill="#1c2230">class nnUNetTrainerGoATv2</text>
+  <text x="58" y="566" font-size="10.5" fill="#5b6170">the shim imports a name that doesn't exist</text>
+
+  <!-- ============ BRANCH B ============ -->
+  <g filter="url(#soft)"><rect x="390" y="240" width="300" height="76" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/></g>
+  <text x="408" y="266" font-size="14" font-weight="700" fill="#1c2230">B · a valid, filled config</text>
+  <text x="408" y="286" font-size="10.5" fill="#5b6170">18 SPECIALIST hooks + a complete</text>
+  <text x="408" y="302" font-size="10.5" fill="#5b6170">provenance header, or the run refuses</text>
+
+  <g filter="url(#soft)">
+    <rect x="390" y="360" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="390" y="440" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="390" y="520" width="300" height="64" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  </g>
+  <text x="408" y="386" font-size="12" font-weight="700" fill="#1c2230">config.py kind "train_v2"</text>
+  <text x="408" y="406" font-size="10.5" fill="#5b6170">TRAIN_V2_HOOK_KEYS = SPECIALIST_HOOKS_V2</text>
+  <text x="408" y="466" font-size="12" font-weight="700" fill="#1c2230">load_goat_v2_config()</text>
+  <text x="408" y="486" font-size="10.5" fill="#5b6170">assert_valid_config refuses an unfilled yaml</text>
+  <text x="408" y="546" font-size="12" font-weight="700" fill="#1c2230">configs/train_v2.yaml</text>
+  <text x="408" y="566" font-size="10.5" fill="#5b6170">never emitted — nothing for the specialist</text>
+
+  <!-- ============ BRANCH C ============ -->
+  <g filter="url(#soft)"><rect x="740" y="240" width="300" height="76" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/></g>
+  <text x="758" y="266" font-size="14" font-weight="700" fill="#1c2230">C · a launch command</text>
+  <text x="758" y="286" font-size="10.5" fill="#5b6170">argv + env var, assembled by the package</text>
+  <text x="758" y="302" font-size="10.5" fill="#5b6170">rather than typed by hand on the HPC</text>
+
+  <g filter="url(#soft)">
+    <rect x="740" y="360" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="740" y="440" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="740" y="520" width="300" height="64" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="758" y="386" font-size="12" font-weight="700" fill="#1c2230">plan.py train_command()</text>
+  <text x="758" y="406" font-size="10.5" fill="#5b6170">builds the nnUNetv2_train argv</text>
+  <text x="758" y="466" font-size="12" font-weight="700" fill="#1c2230">GOAT_V2_TRAIN_CONFIG_ENV</text>
+  <text x="758" y="486" font-size="10.5" fill="#5b6170">distinct from v1 — both live in one shell</text>
+  <text x="758" y="546" font-size="12" font-weight="700" fill="#1c2230">GOAT_TRAINER_V2 constant</text>
+  <text x="758" y="566" font-size="10.5" fill="#5b6170">plan.py:20 hardcodes the v1 trainer name</text>
+
+  <!-- ============ BRANCH D ============ -->
+  <g filter="url(#soft)"><rect x="1090" y="240" width="300" height="76" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/></g>
+  <text x="1108" y="266" font-size="14" font-weight="700" fill="#1c2230">D · the v2 idea actually applied</text>
+  <text x="1108" y="286" font-size="10.5" fill="#5b6170">wider domain randomisation + a bias field,</text>
+  <text x="1108" y="302" font-size="10.5" fill="#5b6170">the whole reason v2 exists at all</text>
+
+  <g filter="url(#soft)">
+    <rect x="1090" y="360" width="300" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="1090" y="440" width="300" height="64" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+    <rect x="1090" y="520" width="300" height="64" rx="8" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  </g>
+  <text x="1108" y="386" font-size="12" font-weight="700" fill="#1c2230">SPECIALIST_HOOKS_V2</text>
+  <text x="1108" y="406" font-size="10.5" fill="#5b6170">18 hooks declared, 10 of them da_*</text>
+  <text x="1108" y="466" font-size="12" font-weight="700" fill="#1c2230">get_training_transforms()</text>
+  <text x="1108" y="486" font-size="10.5" fill="#5b6170">override never written — hooks go nowhere</text>
+  <text x="1108" y="546" font-size="12" font-weight="700" fill="#1c2230">bias_field_multiplier()</text>
+  <text x="1108" y="566" font-size="10.5" fill="#5b6170">missing → the 32-test suite won't collect</text>
+
+  <!-- leaf stack arrows -->
+  <g stroke="#3a3f4b" stroke-width="1.8" marker-end="url(#arrow)">
+    <line x1="190" y1="316" x2="190" y2="356"/><line x1="190" y1="424" x2="190" y2="436"/><line x1="190" y1="504" x2="190" y2="516"/>
+    <line x1="540" y1="316" x2="540" y2="356"/><line x1="540" y1="424" x2="540" y2="436"/><line x1="540" y1="504" x2="540" y2="516"/>
+    <line x1="890" y1="316" x2="890" y2="356"/><line x1="890" y1="424" x2="890" y2="436"/><line x1="890" y1="504" x2="890" y2="516"/>
+    <line x1="1240" y1="316" x2="1240" y2="356"/><line x1="1240" y1="424" x2="1240" y2="436"/><line x1="1240" y1="504" x2="1240" y2="516"/>
+  </g>
+
+  <!-- ============ GUARDS PANEL ============ -->
+  <rect x="40" y="628" width="1350" height="152" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <text x="60" y="658" font-size="14" font-weight="700" fill="#1c2230">GUARDS THAT ALREADY HOLD — none of the repair work above may undo these</text>
+  <g filter="url(#soft)">
+    <rect x="60" y="676" width="250" height="82" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="328" y="676" width="250" height="82" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="596" y="676" width="250" height="82" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="864" y="676" width="250" height="82" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <rect x="1132" y="676" width="250" height="82" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+  </g>
+  <text x="76" y="700" font-size="12" font-weight="700" fill="#1c2230">v1 hook tuple frozen</text>
+  <text x="76" y="720" font-size="10.5" fill="#5b6170">a test pins SPECIALIST_HOOKS</text>
+  <text x="76" y="736" font-size="10.5" fill="#5b6170">verbatim, so the in-flight</text>
+  <text x="76" y="752" font-size="10.5" fill="#5b6170">train.yaml stays valid</text>
+  <text x="344" y="700" font-size="12" font-weight="700" fill="#1c2230">shim filename distinct</text>
+  <text x="344" y="720" font-size="10.5" fill="#5b6170">brats2026_goat_v2.py never</text>
+  <text x="344" y="736" font-size="10.5" fill="#5b6170">overwrites the v1 shim the</text>
+  <text x="344" y="752" font-size="10.5" fill="#5b6170">running job started with</text>
+  <text x="612" y="700" font-size="12" font-weight="700" fill="#1c2230">env var distinct</text>
+  <text x="612" y="720" font-size="10.5" fill="#5b6170">BRATS_GOAT_V2_TRAIN_CONFIG</text>
+  <text x="612" y="736" font-size="10.5" fill="#5b6170">can be exported next to v1's</text>
+  <text x="612" y="752" font-size="10.5" fill="#5b6170">without hijacking it</text>
+  <text x="880" y="700" font-size="12" font-weight="700" fill="#1c2230">warm-start refusal</text>
+  <text x="880" y="720" font-size="10.5" fill="#5b6170">assert_transferable raises on</text>
+  <text x="880" y="736" font-size="10.5" fill="#5b6170">a wrong checkpoint instead of</text>
+  <text x="880" y="752" font-size="10.5" fill="#5b6170">silently random-initialising</text>
+  <text x="1148" y="700" font-size="12" font-weight="700" fill="#1c2230">compliance-safe naming</text>
+  <text x="1148" y="720" font-size="10.5" fill="#5b6170">init_weights_from, not</text>
+  <text x="1148" y="736" font-size="10.5" fill="#5b6170">pretrained_* — clears our own</text>
+  <text x="1148" y="752" font-size="10.5" fill="#5b6170">GoAT prior-weights gate</text>
+
+  <!-- ============ LEGEND ============ -->
+  <rect x="60" y="812" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+  <text x="90" y="825" font-size="12" fill="#5b6170">built &amp; tested</text>
+  <rect x="300" y="812" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  <text x="330" y="825" font-size="12" fill="#5b6170">exists, not wired up</text>
+  <rect x="570" y="812" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  <text x="600" y="825" font-size="12" fill="#5b6170">planned / never written</text>
+  <rect x="860" y="812" width="22" height="16" rx="4" fill="#fbe6e2" stroke="#c23a22" stroke-dasharray="5 4"/>
+  <text x="890" y="825" font-size="12" fill="#5b6170">blocked — breaks the chain</text>
+
+  <text x="60" y="872" font-size="11" fill="#8a90a0">The contract layer (green) is complete; every red leaf is execution code that needs a real nnU-Net environment to matter. Nothing red touches the running v1 job.</text>
+  <text x="60" y="890" font-size="11" fill="#8a90a0">Grounded in trainer_v2.py, test_trainer_v2.py, config.py, plan.py, cli.py — read 2026-07-28.</text>
+</svg>

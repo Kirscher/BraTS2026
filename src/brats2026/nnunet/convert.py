@@ -72,13 +72,22 @@ class ConversionPlan:
         return len(self.converted)
 
 
-def plan_conversion(records: list[dict], raw_root: Path, require_label: bool = True) -> ConversionPlan:
+def plan_conversion(
+    records: list[dict],
+    raw_root: Path,
+    require_label: bool = True,
+    dataset_name: str = DATASET_NAME,
+) -> ConversionPlan:
     """Plan the link operations for converting manifest ``records`` to nnU-Net raw.
 
     A case is converted only when all four modalities (and, if ``require_label``, the seg)
     are present; otherwise it is recorded under ``skipped`` with the missing channel names.
+
+    ``dataset_name`` selects the target dataset directory under ``raw_root`` and defaults to
+    the base labelled :data:`DATASET_NAME` (501); the synthesis track passes the augmented
+    ``Dataset701_...`` name so the two never share a directory.
     """
-    dataset_dir = raw_root / DATASET_NAME
+    dataset_dir = raw_root / dataset_name
     images_tr = dataset_dir / "imagesTr"
     labels_tr = dataset_dir / "labelsTr"
 

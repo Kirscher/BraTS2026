@@ -1,0 +1,79 @@
+# BraTS 2026 Task 3 (GoAT) — Synthesis Stage-2 latent-diffusion config.
+# Resolves the 15 ``# SPECIALIST:`` hooks of LatentDiffusionConfig
+# (src/brats2026/synthesis/diffusion.py). Stage 2 of the DiffTumor synthesis
+# track: a mask-conditioned latent DDPM trained as a conditional INPAINTER on REAL
+# tumour patches (hole the tumour latent, keep healthy context + mask, denoise the
+# real tumour back into the hole) inside the FROZEN Stage-1 AE latent.
+#
+# From-scratch, GoAT-only data. The patch is aligned to the Stage-1 AE / nnU-Net plan
+# patch so the latent geometry matches. The expensive train-launch stays behind the
+# human gate; this file only proposes. Every hook is null until the ai-specialist fills
+# it against the inner-dev reports (never the outer LODO fold).
+kind: synthesis-diffusion
+provenance:
+  git_sha: null
+  # Fill from the data-pipeline ledger (provenance.fingerprint_from_ledger) of the GoAT
+  # tumour-patch set BEFORE any real run. null = not yet certified; compliance-guard
+  # must refuse a launch while this is null.
+  dataset_fingerprint: null
+  seed: 20260725          # date-derived, deterministic & traceable (matches `seed` hook below)
+  parent_run_id: null     # run-id this config was derived from (null = fresh root)
+  date: 2026-07-25
+  config_schema_version: 1
+
+# --- diffusion noise schedule -----------------------------------------------------
+num_train_timesteps: null
+# SPECIALIST: number of diffusion timesteps T. Reference ~1000 (DDPM). Fewer steps =
+# faster sampling, coarser denoising.
+
+beta_schedule: null
+# SPECIALIST: variance schedule, one of {linear, cosine} (BETA_SCHEDULES). cosine
+# (Nichol & Dhariwal) keeps more signal at high t and often trains more stably; linear
+# is the original DDPM schedule.
+
+beta_start: null
+# SPECIALIST: linear-schedule beta at t=0. Reference ~1e-4. Ignored when beta_schedule=cosine.
+
+beta_end: null
+# SPECIALIST: linear-schedule beta at t=T. Reference ~2e-2. Ignored when beta_schedule=cosine.
+
+cosine_s: null
+# SPECIALIST: cosine-schedule offset s (Nichol & Dhariwal). Reference ~8e-3. Ignored
+# when beta_schedule=linear.
+
+# --- UNet architecture ------------------------------------------------------------
+unet_channels: null
+# SPECIALIST: MONAI DiffusionModelUNet feature widths per level (tuple), e.g.
+# (128, 256, 256). Operates on the latent, so it is cheaper than a pixel-space UNet.
+
+unet_attention_levels: null
+# SPECIALIST: per-level self-attention flags (tuple of bool, parallel to unet_channels).
+# Reference: attention at the deeper (lower-resolution) levels, e.g. (false, true, true).
+
+num_res_blocks: null
+# SPECIALIST: residual blocks per resolution level. Reference ~1-3.
+
+patch_size: null
+# SPECIALIST: 3D patch size (D, H, W), aligned to the Stage-1 AE / nnU-Net plan patch so
+# the latent tiles cleanly. Reference ~128^3 (memory permitting).
+
+# --- optimisation (offline budget) ------------------------------------------------
+initial_lr: null
+# SPECIALIST: diffusion learning rate. Reference ~1e-4.
+
+weight_decay: null
+# SPECIALIST: diffusion weight decay.
+
+warmup_epochs: null
+# SPECIALIST: LR warm-up epochs.
+
+num_epochs: null
+# SPECIALIST: total diffusion training epochs (offline budget; NOT the 8h container budget).
+
+batch_size: null
+# SPECIALIST: watch training-GPU memory — latent patches are smaller than voxels but the
+# UNet + frozen AE both sit on the GPU.
+
+seed: null
+# SPECIALIST: RNG seed for reproducibility / provenance (mirrors provenance.seed).
+# Date-derived so the whole Stage-2 run is reproducible from scratch.

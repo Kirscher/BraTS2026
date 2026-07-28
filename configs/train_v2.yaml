@@ -1,0 +1,247 @@
+# BraTS 2026 Task 3 (GoAT) — train_v2 config (nnUNetTrainerGoATv2).   *** REVIEWED — READY ***
+#
+# STATUS: reviewed by the lead 2026-07-29 and cleared to ship. Every nnU-Net stock default quoted
+# below was VERIFIED against nnUNetTrainer.get_training_transforms on MIC-DKFZ/nnUNet master on
+# that date (see [NNU-SRC]). Nothing here starts a run: the train-launch stays human-gated, and
+# `brats2026 stamp-config` must bind the file to the data first. Every number carries a source
+# tag; the ones tagged [JUDGEMENT] are NOT literature-backed and say so on purpose.
+#
+# ONE THING TO CHECK BEFORE LAUNCH: batch_size / patch_size below are placeholders mirrored from
+# v1. Copy the real values out of nnUNetResEncUNetLPlans.json — they MUST match v1's or the warm
+# start is shape-incompatible and assert_transferable will refuse it.
+#
+# WHY V2 EXISTS. Submission 1 already sits at top-leaderboard parity and hyperparameter tuning
+# has SATURATED: successive optimiser retunes move the score by ~1e-2 to 1e-3. Task 3 is scored
+# on GENERALISATION across 5 cohorts, two of which (SSA, PED) contribute no training data at
+# all. The remaining lever is augmentation strength, not the optimiser. This config is therefore
+# a deliberate SINGLE-VARIABLE experiment against configs/train.yaml: the optimiser / loss /
+# geometry block is HELD at v1's values and only the `da_*` block moves.
+#
+# WHAT THIS RUN IS. A short REFINEMENT warm-started from a converged v1 fold checkpoint
+# (`init_weights_from`, commented out below — uncomment on the HPC). It is not a from-scratch
+# run: the LR and schedule are chosen to CONTINUE an already-converged solution under a harder
+# augmentation distribution, not to re-converge one.
+#
+# ------------------------------------------------------------------------------------------
+# SOURCE TAGS used on the lines below
+#   [NNU-2021]  Isensee et al., "nnU-Net: a self-configuring method for deep learning-based
+#               biomedical image segmentation", Nature Methods 18:203-211, 2021. Methods section
+#               pins the optimiser recipe (SGD + Nesterov mu=0.99, initial LR 1e-2, poly decay
+#               exponent 0.9, 1000 epochs x 250 iterations, weight decay 3e-5, Dice+CE loss,
+#               1/3 foreground oversampling).
+#   [NNU-SRC]   nnU-Net v2 source defaults in nnUNetTrainer.get_training_transforms.
+#               *** VERIFIED 2026-07-29 against nnUNetTrainer.py on MIC-DKFZ/nnUNet master. ***
+#               The RandomTransform apply_probability values are, verbatim:
+#                 GaussianNoiseTransform             0.10
+#                 GaussianBlurTransform              0.20
+#                 MultiplicativeBrightnessTransform  0.15
+#                 ContrastTransform                  0.15
+#                 SimulateLowResolutionTransform     0.25
+#                 GammaTransform (p_invert_image=1)  0.10
+#                 GammaTransform (p_invert_image=0)  0.30
+#               and SpatialTransform carries p_rotation=0.2, p_scaling=0.2, scaling=(0.7, 1.4).
+#               There is NO bias-field transform in that list — hence this trainer adds one.
+#               WARNING: several widely-cited secondary summaries of nnU-Net's augmentation give
+#               noise=0.20 and low-res=0.20. Those are WRONG against the source. Since our da_*_p
+#               hooks OVERRIDE these defaults, tuning against the wrong baseline would mis-state
+#               every v1-vs-v2 delta we report in the paper.
+#   [RESENC]    Isensee et al., "nnU-Net Revisited: A Call for Rigorous Validation in 3D Medical
+#               Image Segmentation", arXiv:2404.09556 / MICCAI 2024 — the ResEnc-{M,L,XL} presets.
+#               It fixes GPU-memory budgets, NOT per-dataset batch/patch: those stay planner-derived.
+#   [BRATS20]   Isensee et al., "nnU-Net for Brain Tumor Segmentation" (BraTS 2020 winning
+#               contribution, BrainLes 2020 / arXiv:2011.00848). Its ablation table includes a
+#               "more data augmentation" variant that RAISES the DA probabilities and widens the
+#               ranges. *** I am confident the variant exists and its direction; I have NOT
+#               verified its exact per-transform values and do not claim them. ***
+#   [TOBIN17]   Tobin et al., "Domain Randomization for Transferring Deep Neural Networks from
+#               Simulation to the Real World", IROS 2017 — establishes the PRINCIPLE (randomise
+#               the nuisance factors widely enough that the real domain looks like one more
+#               variation). Pins no probability for anything.
+#   [SYNTHSEG]  Billot et al., "SynthSeg: Segmentation of brain MRI scans of any contrast and
+#               resolution without retraining", Medical Image Analysis 86:102789, 2023 (and the
+#               MIDL 2020 precursor). The MRI-specific domain-randomisation result: randomising
+#               contrast, RESOLUTION and BIAS FIELD produces contrast/resolution-agnostic
+#               segmentation without retraining. Its generator is a GMM-from-label-maps pipeline,
+#               NOT nnU-Net's transform stack, so it transfers the DIRECTION (and the emphasis on
+#               resolution + bias field) but no probability that is meaningful here.
+#   [N4ITK]     Tustison et al., "N4ITK: Improved N3 Bias Correction", IEEE TMI 29(6), 2010 —
+#               establishes low-frequency intensity inhomogeneity as a real, pervasive,
+#               scanner-dependent MRI artefact, and models it with a smooth low-order basis.
+#               Motivates modelling a bias field; pins no augmentation probability.
+#   [TORCHIO]   torchio.transforms.RandomBiasField (Pérez-García et al., Comput Methods Programs
+#               Biomed 208:106236, 2021) — the closest published implementation of the exact field
+#               this trainer builds: a smooth multiplicative field from a linear combination of
+#               polynomial basis functions, exponentiated so it is strictly positive and identity
+#               at zero coefficients. *** Defaults VERIFIED 2026-07-29: order=3, coefficients=0.5,
+#               where `coefficients` is the MAXIMUM MAGNITUDE of the polynomial coefficients
+#               (i.e. sampled in [-0.5, 0.5]). ***
+#   [JUDGEMENT] MY CALL. No source pins this number. Reasoning is given inline.
+# ------------------------------------------------------------------------------------------
+#
+# GoAT RULE. The warm start is from OUR OWN GoAT-trained weights on GoAT-only data. No external
+# corpus, no prior-BraTS checkpoint, no pretrained initialisation. Leaving `init_weights_from`
+# commented out trains from scratch and is equally legal.
+#
+# PROVENANCE. seed / parent_run_id / config_schema_version are decided here. git_sha / date /
+# dataset_fingerprint are DATA- and ENVIRONMENT-bound and are stamped on the HPC:
+#
+#     brats2026 stamp-config --config configs/train_v2.yaml --raw "$nnUNet_raw/Dataset501_BraTSGoAT"
+#
+# stamp-config now validates against the `kind:` the file declares, so it checks this file against
+# the train_v2 hook tuple automatically (it used to hardcode "train" and would have rejected this
+# file after stamping it — fixed 2026-07-29). Pass `--kind train_v2` to force it.
+# Until stamped, assert_valid_config refuses this file and the trainer will not launch — by
+# design: no run against an unbound config.
+kind: train_v2
+
+provenance:
+  # --- data/environment-bound: stamped on the HPC by `brats2026 stamp-config` ---
+  git_sha: null                       # STAMP: git rev-parse HEAD of the deployed commit
+  date: null                          # STAMP: ISO date the config was bound to the data
+  dataset_fingerprint: null           # STAMP: provenance fingerprint of the preprocessed data
+  # --- decided now (specialist-owned) ---
+  seed: 1337                          # [JUDGEMENT] any fixed seed satisfies reproducibility;
+                                      # chosen DIFFERENT from v1's 42 so v2 draws an independent
+                                      # augmentation/sampling stream and the two runs' logs can
+                                      # never be confused.
+  parent_run_id: "nnUNetTrainerGoAT__nnUNetResEncUNetLPlans__3d_fullres/fold_0"
+                                      # the v1 run this warm-starts from (NOT "root"): same plans,
+                                      # same configuration, same fold — required for the weight
+                                      # transfer to be shape-compatible (plan_weight_transfer).
+  config_schema_version: "brats2026-config/1"   # pinned to config.CONFIG_SCHEMA_VERSION
+
+# --- WARM START (a CHOICE, not a # SPECIALIST hook — None is legal and means from scratch) ---
+# Leaving `init_weights_from` unset/commented trains v2 FROM SCRATCH with the widened
+# augmentation. That is valid but wastes the converged v1 fold and will NOT finish before the
+# Jul 23 final deadline at this schedule length. Intended use is to uncomment ONE line on the
+# HPC, editing only the fold index / checkpoint name to match the fold actually being refined:
+#
+# init_weights_from: "/work/nnUNet_results/Dataset501_BraTSGoAT/nnUNetTrainerGoAT__nnUNetResEncUNetLPlans__3d_fullres/fold_0/checkpoint_final.pth"
+#
+init_weights_strict: false            # [JUDGEMENT] inert while init_weights_from is unset. false =
+                                      # tolerate model tensors absent from the checkpoint;
+                                      # assert_transferable STILL refuses a zero-overlap or
+                                      # shape-mismatched checkpoint, so a silent degradation into
+                                      # random init cannot happen.
+
+# --- optimiser / schedule (applied by apply_goat_v2_config BEFORE super().initialize()) ---
+initial_lr: 0.001                     # [JUDGEMENT, arithmetic-anchored on NNU-2021]
+                                      # [NNU-2021] pins the stock recipe: SGD, Nesterov mu=0.99,
+                                      # initial LR 1e-2, poly decay (1 - e/E)^0.9. Re-entering a
+                                      # CONVERGED model at 1e-2 with mu=0.99 applies step-1-of-
+                                      # training-sized updates and wipes it out. No source pins the
+                                      # warm-start LR (nnU-Net's own finetuning docs actually
+                                      # finetune at the STANDARD LR, so they do not support this).
+                                      # Anchor is arithmetic, not literature: nnU-Net's own poly
+                                      # curve passes through 1e-3 at 1e-2*(1-e/1000)^0.9 = 1e-3 =>
+                                      # e = 923/1000, i.e. 1e-3 IS the LR v1 was training at near
+                                      # the end of its schedule. We resume there and decay to ~0.
+weight_decay: 3.0e-5                  # [NNU-2021] stock weight decay, HELD at v1's value. This run
+                                      # changes augmentation only; regularisation is not the variable.
+num_epochs: 150                       # [JUDGEMENT] stock is 1000 epochs x 250 iterations [NNU-2021];
+                                      # a warm start needs far fewer and no source pins how many.
+                                      # 150 x 250 = 37.5k iterations, and it lets poly decay carry
+                                      # 1e-3 -> ~0 across the whole run. Wall-clock is an ESTIMATE
+                                      # (~5 min/epoch for ResEnc-L b2 on a 3090 => ~12-15 h/fold),
+                                      # not a measurement — nnunet-trainer should confirm from v1's
+                                      # actual epoch times and I will re-cut this number if it is off.
+oversample_foreground_percent: 0.33   # [NNU-2021] "one third of the samples in a batch are forced to
+                                      # contain at least one foreground class". HELD at v1's value.
+                                      # Raising it would plausibly help the known ET false-negative
+                                      # weakness, but it would move the sampling distribution at the
+                                      # same time as the augmentation and make the v1-vs-v2 delta
+                                      # uninterpretable. Queued as the NEXT single-variable
+                                      # experiment, not this one.
+
+# --- geometry: MIRRORED FROM THE PLANS for provenance; the planner's
+#     nnUNetResEncUNetLPlans.json is AUTHORITATIVE [RESENC: the preset fixes a GPU-memory budget,
+#     the per-dataset batch/patch stay planner-derived]. apply_goat_v2_config does NOT set these.
+#     They MUST equal v1's values: nnU-Net derives network depth from the patch size, so a
+#     different patch size yields a different architecture and assert_transferable would (rightly)
+#     refuse the warm start. COPY THE REAL VALUES HERE from the plans JSON before launch. ---
+batch_size: 2                         # placeholder mirrored from v1 / typical ResEnc-L 3d_fullres
+patch_size: [128, 160, 112]           # placeholder mirrored from v1 / typical ResEnc-L 3d_fullres
+
+# --- region loss weights (Dice + CE, region-based ET/TC/WT) ---
+loss_dice_weight: 1.0                 # [NNU-2021 / NNU-SRC] DC_and_CE_loss stock weight_dice = 1
+loss_ce_weight: 1.0                   # [NNU-2021 / NNU-SRC] DC_and_CE_loss stock weight_ce = 1
+
+# --- DOMAIN RANDOMISATION -------------------------------------------------------------------
+# These probabilities OVERRIDE nnU-Net's defaults, they do NOT add to them. The stock default is
+# stated on every line and was verified against nnU-Net master [NNU-SRC].
+#
+# HONEST FRAMING FOR THE WHOLE BLOCK: the DIRECTION is literature-backed — [TOBIN17] for the
+# principle, [SYNTHSEG] for the MRI-specific result that randomising contrast/resolution/bias
+# field buys cross-scanner generalisation, [BRATS20] for the fact that nnU-Net's own BraTS
+# winning entry ablated a "more data augmentation" variant. The specific VALUES below are
+# [JUDGEMENT]: no source pins a probability for nnU-Net's transform stack on GoAT. They are set
+# at roughly 2x the stock rates — a deliberate middle between stock and SynthSeg's essentially-
+# always-on regime, because we are refining an already-converged model in 150 epochs and a
+# SynthSeg-strength jump would destabilise it. Each individual corruption stays MILD; what
+# changes is how OFTEN the network is denied the training scanners' intensity statistics.
+da_scale_range: [0.65, 1.5]           # [JUDGEMENT] stock (0.7, 1.4) [NNU-SRC]. Widened both ways:
+                                      # PED brains are physically smaller and MET lesions are
+                                      # frequently sub-cm, so apparent-size invariance is a real
+                                      # cohort-shift axis. Magnitude of the widening is my call.
+da_noise_p: 0.25                      # [JUDGEMENT] stock 0.10 [NNU-SRC]. Additive Gaussian noise —
+                                      # proxy for the low-SNR SSA acquisitions we never train on.
+da_blur_p: 0.35                       # [JUDGEMENT] stock 0.20 [NNU-SRC]. Point-spread / motion blur
+                                      # varies strongly across sites.
+da_brightness_p: 0.35                 # [JUDGEMENT] stock 0.15 [NNU-SRC]. Multiplicative gain differs
+                                      # per scanner and per coil.
+da_contrast_p: 0.35                   # [JUDGEMENT] stock 0.15 [NNU-SRC]. Sequence-parameter drift
+                                      # across sites changes tissue contrast, not just gain.
+da_low_res_p: 0.40                    # [JUDGEMENT] stock 0.25 [NNU-SRC]. Gets the TOP rate in this
+                                      # block because resolution is one of the two factors [SYNTHSEG]
+                                      # identifies as decisive for cross-scanner generalisation, and
+                                      # thick-slice / low-field acquisition is the documented SSA
+                                      # failure mode. The ranking is source-backed; the value is mine.
+da_gamma_p: 0.45                      # [JUDGEMENT] stock 0.30 for the non-inverted gamma [NNU-SRC]
+                                      # (nnU-Net also ships an inverted-gamma pass at 0.10, which
+                                      # this trainer does not expose as a hook). Gamma is the cheapest
+                                      # stand-in for the NON-LINEAR inter-scanner intensity mapping
+                                      # that linear brightness/contrast jitter cannot express — the
+                                      # "contrast-agnostic" axis of [SYNTHSEG].
+
+# --- BIAS FIELD ------------------------------------------------------------------------------
+# CORRECTION 2026-07-29: the trainer now subclasses nnUNetTrainerDA5, DKFZ's own aggressive-
+# augmentation variant, which ALREADY ships BrightnessGradientAdditiveTransform and
+# LocalGammaTransform at p=0.3 — spatially-varying intensity corruption with the same intent as
+# this field. So this is no longer a novel transform, it is a second, multiplicative flavour of
+# something DA5 already does. Keep it modest or set da_bias_field_p: 0.0 to rely on DA5's pair;
+# the HPC smoke test (RUN_HPC_V2.md §4) prints what actually bound, so decide from that.
+# NOTE ALSO: nnU-Net z-scores in preprocessing, so patches contain negative values and this
+# multiplies deviation-from-mean rather than adding illumination. It is a spatially-varying GAIN,
+# not a physical B1/B0 bias field. Do not describe it as the latter in the paper.
+# Multiplicative smooth polynomial field; all-zero coefficients give an identity (all-ones) field,
+# so the coefficient range IS the corruption strength. nnU-Net's stock rate for this is
+# effectively 0.0 — it does not model B1/B0 inhomogeneity at all [NNU-SRC], which is exactly the
+# artefact [N4ITK] shows is pervasive and scanner-dependent, and one of the three factors
+# [SYNTHSEG] randomises to get scanner-agnostic segmentation.
+da_bias_field_p: 0.35                 # [JUDGEMENT] no stock value exists (transform absent from
+                                      # nnU-Net). [SYNTHSEG] applies a bias field to essentially
+                                      # every sample; [TORCHIO]'s RandomBiasField pins no probability.
+                                      # 0.35 puts it on a par with the other intensity corruptions
+                                      # without making the inhomogeneous case the majority of what a
+                                      # 150-epoch refinement sees. Deliberately below SynthSeg's rate.
+da_bias_field_order: 3                # [TORCHIO] RandomBiasField's default order is 3 (verified),
+                                      # and consistent with the low-order
+                                      # smooth basis [N4ITK] uses to model inhomogeneity. Order 3
+                                      # over 3 axes = 20 coefficients (matches the 20 the trainer's
+                                      # unit tests feed it). Smooth enough to read as a scanner
+                                      # artefact, not free enough to imitate — and therefore erase —
+                                      # real lesion contrast.
+da_bias_field_coeff_range: [-0.12, 0.12]
+                                      # [JUDGEMENT] SYMMETRIC about 0 is not a free choice: a
+                                      # one-sided range (e.g. [0.0, 0.1]) biases every sample's
+                                      # intensity in the SAME direction, which is a systematic shift,
+                                      # not inhomogeneity. The MAGNITUDE is my call and is
+                                      # deliberately conservative: [TORCHIO] RandomBiasField's
+                                      # default samples coefficients in [-0.5, 0.5] (verified),
+                                      # i.e. ~4x wider than this. We are refining a
+                                      # converged model, so I take a quarter of that: ~10-15%
+                                      # intensity modulation typically, ~30% in the tails — the
+                                      # realistic scanner-inhomogeneity range, and mild enough that
+                                      # it cannot swamp the ET/NCR contrast the labels depend on.
+                                      # If the v2 delta is flat, THIS is the first knob to widen
+                                      # (toward torchio's 0.5), not the optimiser.

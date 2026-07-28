@@ -25,6 +25,10 @@ train = [
   "webdataset>=0.2.100",
   "torchvision>=0.18",
 ]
+synthesis = [
+  "einops>=0.7",
+  "lpips>=0.1",
+]
 config = [
   "pyyaml>=6",
 ]

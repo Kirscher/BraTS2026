@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1120" viewBox="0 0 1200 1120" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1200" height="1120" fill="#f7f8fa"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a3f4b"/>
+    </marker>
+    <filter id="soft" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <text x="40" y="44" font-size="26" font-weight="700" fill="#1c2230">DiffTumor synthetic augmentation — BraTS-GoAT (Task 3)</text>
+  <text x="40" y="68" font-size="14" fill="#5b6170">Learn from REAL tumours (Stage 2), generate on HEALTHY canvas (Stage 3) · patch-aligned to the nnU-Net plan · independent of MAE/SSL</text>
+
+  <!-- STAGE 0 · DATA -->
+  <rect x="40" y="100" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="100" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="134" font-size="15" font-weight="700" fill="#1c2230">STAGE 0 · DATA</text>
+  <text x="60" y="156" font-size="12.5" fill="#5b6170">GoAT raw (exists)</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="114" width="590" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="294" y="136" font-size="13" font-weight="700" fill="#1c2230">work/nnUNet_raw/Dataset501_BraTSGoAT</text>
+    <text x="294" y="153" font-size="10.5" fill="#5b6170">1351 labelled cases · 4 channels t1n / t1c / t2f / t2w</text>
+    <text x="294" y="169" font-size="10.5" fill="#5b6170">labels NCR=1 ED=2 ET=3 · region-based ET / TC / WT</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="122" width="270" height="48" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+    <text x="906" y="143" font-size="12" font-weight="700" fill="#1c2230">tumours included</text>
+    <text x="906" y="160" font-size="10.5" fill="#5b6170">no filtering needed for Stage 1</text>
+  </g>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="192" x2="150" y2="226"/></g>
+
+  <!-- STAGE 1 · AUTOENCODER -->
+  <rect x="40" y="226" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="226" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="260" font-size="15" font-weight="700" fill="#1c2230">STAGE 1 · AUTOENCODER</text>
+  <text x="60" y="282" font-size="12.5" fill="#5b6170">compress + reconstruct</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="240" width="590" height="64" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <text x="294" y="262" font-size="13" font-weight="700" fill="#1c2230">synthesis/autoencoder.py — AutoencoderKL (3D VAE)</text>
+    <text x="294" y="279" font-size="10.5" fill="#5b6170">train on ALL patches (healthy + tumour) · from scratch, GoAT only</text>
+    <text x="294" y="295" font-size="10.5" fill="#5b6170">losses: L1 + LPIPS + patch-GAN + small KL → then FROZEN</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="248" width="270" height="48" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+    <text x="906" y="269" font-size="12" font-weight="700" fill="#1c2230">learns: reconstruct anatomy</text>
+    <text x="906" y="286" font-size="10.5" fill="#5b6170">no tumour signal here</text>
+  </g>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="318" x2="150" y2="352"/></g>
+
+  <!-- STAGE 2 · DIFFUSION -->
+  <rect x="40" y="352" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="352" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="386" font-size="15" font-weight="700" fill="#1c2230">STAGE 2 · DIFFUSION</text>
+  <text x="60" y="408" font-size="12.5" fill="#5b6170">learn to paint a tumour</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="366" width="590" height="64" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <text x="294" y="388" font-size="13" font-weight="700" fill="#1c2230">synthesis/diffusion.py — latent DDPM, mask-conditioned</text>
+    <text x="294" y="405" font-size="10.5" fill="#5b6170">train on REAL-TUMOUR patches: hole the tumour, keep context + mask</text>
+    <text x="294" y="421" font-size="10.5" fill="#5b6170">denoise the tumour latent in the hole (conditional inpainting)</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="374" width="270" height="48" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+    <text x="906" y="395" font-size="12" font-weight="700" fill="#1c2230">target = REAL tumour</text>
+    <text x="906" y="412" font-size="10.5" fill="#5b6170">not healthy tissue (that = Task 4)</text>
+  </g>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="444" x2="150" y2="478"/></g>
+
+  <!-- STAGE 3 · GENERATE -->
+  <rect x="40" y="478" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="478" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="512" font-size="15" font-weight="700" fill="#1c2230">STAGE 3 · GENERATE</text>
+  <text x="60" y="534" font-size="12.5" fill="#5b6170">inject on healthy canvas</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="492" width="590" height="64" rx="8" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+    <text x="294" y="514" font-size="13" font-weight="700" fill="#1c2230">synthesis/masks.py + generate.py</text>
+    <text x="294" y="531" font-size="10.5" fill="#5b6170">healthy canvas (brain &#8743; &#172;tumour, contralateral option) + concentric</text>
+    <text x="294" y="547" font-size="10.5" fill="#5b6170">NCR/ED/ET mask → encode → diffuse → decode → synthetic case</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="500" width="270" height="48" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+    <text x="906" y="521" font-size="12" font-weight="700" fill="#1c2230">&#8658; Dataset701_BraTSGoATSynth</text>
+    <text x="906" y="538" font-size="10.5" fill="#5b6170">real 501 + synthetic · exact geometry</text>
+  </g>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="570" x2="150" y2="604"/></g>
+
+  <!-- STAGE 4 · TRAIN -->
+  <rect x="40" y="604" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="604" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="638" font-size="15" font-weight="700" fill="#1c2230">STAGE 4 · TRAIN</text>
+  <text x="60" y="660" font-size="12.5" fill="#5b6170">existing trainer</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="618" width="590" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="294" y="640" font-size="13" font-weight="700" fill="#1c2230">nnUNetv2_train 701 3d_fullres f -tr nnUNetTrainerGoAT</text>
+    <text x="294" y="657" font-size="10.5" fill="#5b6170">your trainer, unchanged · nnUNetv2_plan_and_preprocess -d 701</text>
+    <text x="294" y="673" font-size="10.5" fill="#5b6170">synthetic cases obey the same dataset.json contract</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="626" width="270" height="48" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="906" y="647" font-size="12" font-weight="700" fill="#1c2230">reuses nnunet/plan.py</text>
+    <text x="906" y="664" font-size="10.5" fill="#5b6170">train_command()</text>
+  </g>
+
+  <g stroke="#3a3f4b" stroke-width="2.4" marker-end="url(#arrow)"><line x1="150" y1="696" x2="150" y2="730"/></g>
+
+  <!-- STAGE 5 · SCORE -->
+  <rect x="40" y="730" width="1140" height="92" rx="10" fill="#ffffff" stroke="#dfe3ea"/>
+  <rect x="40" y="730" width="220" height="92" rx="10" fill="#eaf1ff" stroke="#dfe3ea"/>
+  <text x="60" y="764" font-size="15" font-weight="700" fill="#1c2230">STAGE 5 · SCORE</text>
+  <text x="60" y="786" font-size="12.5" fill="#5b6170">beat submission #1</text>
+  <g filter="url(#soft)">
+    <rect x="278" y="744" width="590" height="64" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="294" y="766" font-size="13" font-weight="700" fill="#1c2230">brats2026 evaluate --pred --gt --output</text>
+    <text x="294" y="783" font-size="10.5" fill="#5b6170">ET / TC / WT Dice + NSD · per-cohort + worst-cohort (LODO)</text>
+    <text x="294" y="799" font-size="10.5" fill="#5b6170">baseline to beat: ET .778 / TC .827 / WT .886 (global DSC)</text>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="890" y="752" width="270" height="48" rx="8" fill="#e8f3ee" stroke="#2e7d57"/>
+    <text x="906" y="773" font-size="12" font-weight="700" fill="#1c2230">evaluation/score.py</text>
+    <text x="906" y="790" font-size="10.5" fill="#5b6170">already wired</text>
+  </g>
+
+  <!-- CROSS-CUTTING BANNERS -->
+  <rect x="40" y="846" width="1140" height="44" rx="8" fill="#eef0f4" stroke="#c7ccd6"/>
+  <text x="60" y="873" font-size="12" fill="#5b6170"><tspan font-weight="700" fill="#1c2230">COMPLIANCE</tspan>  from-scratch · GoAT-only · no pretrained DiffTumor weights · synthesis provenance (AE sha, diffusion sha, mask seed) stamped into the Dataset701 fingerprint for compliance-guard audit.</text>
+
+  <rect x="40" y="900" width="1140" height="78" rx="8" fill="#e7eefc" stroke="#3f6fd1"/>
+  <text x="60" y="924" font-size="12" fill="#5b6170"><tspan font-weight="700" fill="#1c2230">POOL SIZING</tspan>  a RATIO found by sweep, not a fixed count. Real train ≈ 1080 cases · target 30–50% synthetic per batch.</text>
+  <text x="60" y="944" font-size="12" fill="#5b6170">Ramp: smoke 1 case → pilot ~200 (+20%) on inner-dev → sweep synthetic_ratio {0, 0.25, 0.5, 1.0} → full run ~0.5–1.0× real (~500–1300).</text>
+  <text x="60" y="964" font-size="12" fill="#5b6170">Allocate by cohort DEFICIT + ET emphasis (bulk to SSA/PED/MET, little to GLI) — never uniform. Exact quotas need per-cohort manifest counts (HPC).</text>
+
+  <g filter="url(#soft)">
+    <rect x="40" y="988" width="1140" height="44" rx="8" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+    <text x="60" y="1015" font-size="12" fill="#5b6170"><tspan font-weight="700" fill="#1c2230">SMOKE TEST (no-GPU)</tspan>  notebooks/smoke_difftumor.ipynb — 1 MRI case, 1 step per stage + 1 nnU-Net iter (configs/synthesis/smoke.yaml), geometry asserts throughout · Colab / Kaggle T4.</text>
+  </g>
+
+  <!-- LEGEND -->
+  <rect x="120" y="1064" width="22" height="16" rx="4" fill="#e8f3ee" stroke="#2e7d57"/>
+  <text x="150" y="1077" font-size="12" fill="#5b6170">built &amp; reused as-is</text>
+  <rect x="320" y="1064" width="22" height="16" rx="4" fill="#fbece0" stroke="#b3541e" stroke-dasharray="5 4"/>
+  <text x="350" y="1077" font-size="12" fill="#5b6170">in progress (Stage 1 / smoke)</text>
+  <rect x="560" y="1064" width="22" height="16" rx="4" fill="#f0eef9" stroke="#6a5acd" stroke-dasharray="5 4"/>
+  <text x="590" y="1077" font-size="12" fill="#5b6170">planned — to code</text>
+  <rect x="760" y="1064" width="22" height="16" rx="4" fill="#e7eefc" stroke="#3f6fd1"/>
+  <text x="790" y="1077" font-size="12" fill="#5b6170">data / role / note</text>
+</svg>
