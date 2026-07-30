@@ -1,0 +1,34 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+%files
+    pyproject.toml /opt/app/pyproject.toml
+    README.md /opt/app/README.md
+    src /opt/app/src
+    docker/run_inference.py /opt/app/run_inference.py
+    work/submission_model_base/nnUNet_results /opt/nnunet/results
+
+%post
+    cd /opt/app
+    python -m pip install --upgrade pip
+    python -m pip install --no-cache-dir '.[inference]'
+    mkdir -p /opt/nnunet/raw /opt/nnunet/preprocessed
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export nnUNet_raw=/opt/nnunet/raw
+    export nnUNet_preprocessed=/opt/nnunet/preprocessed
+    export nnUNet_results=/opt/nnunet/results
+    export BRATS_NNUNET_DATASET=501
+    export BRATS_NNUNET_CONFIG=3d_fullres
+    export BRATS_NNUNET_TRAINER=nnUNetTrainer
+    export BRATS_NNUNET_PLANS=nnUNetPlans
+    export BRATS_NNUNET_FOLDS="0 1 2 3 4"
+    export BRATS_ENABLE_TTA=1
+
+%runscript
+    exec python /opt/app/run_inference.py "$@"
+
+%test
+    python -c "import brats2026, nnunetv2, nibabel, torch"
+    test -f /opt/nnunet/results/Dataset501_BraTSGoAT/nnUNetTrainer__nnUNetPlans__3d_fullres/fold_0/checkpoint_final.pth

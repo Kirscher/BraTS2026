@@ -1,0 +1,16 @@
+nnunet:
+  version: "2.6.2"
+  dataset: 501
+  configuration: "3d_fullres"
+  trainer: "nnUNetTrainer"
+  plans: "nnUNetPlans"
+  folds: [0, 1, 2, 3, 4]
+
+ensemble:
+  method: "equal_weight_probability_average"
+  weights: [0.2, 0.2, 0.2, 0.2, 0.2]
+
+inference:
+  mirroring_tta: true
+  connected_component_filter: false
+  tuned_region_thresholds: false
