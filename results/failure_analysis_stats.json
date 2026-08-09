@@ -1,0 +1,58 @@
+{
+  "input": "case_features.csv",
+  "seed": 20260729,
+  "bootstrap": {
+    "method": "percentile bootstrap stratified by OOF fold",
+    "replicates": 2000,
+    "scope": "case-sampling uncertainty only"
+  },
+  "estimates": [
+    {
+      "label": "ET volume",
+      "feature": "log_et_volume",
+      "outcome": "mean_dice",
+      "controls": [
+        "log_wt_volume"
+      ],
+      "partial_rho": 0.48315363516866694,
+      "ci_low": 0.43557341995904014,
+      "ci_high": 0.5255375452884927
+    },
+    {
+      "label": "ET/WT ratio",
+      "feature": "et_wt_ratio",
+      "outcome": "mean_dice",
+      "controls": [
+        "log_et_volume",
+        "log_wt_volume"
+      ],
+      "partial_rho": -0.03921616871068023,
+      "ci_low": -0.086414059443866,
+      "ci_high": 0.010188085773425283
+    },
+    {
+      "label": "Largest ET fraction",
+      "feature": "et_largest_fraction",
+      "outcome": "mean_dice",
+      "controls": [
+        "log_et_volume",
+        "log_wt_volume"
+      ],
+      "partial_rho": 0.3496282029757395,
+      "ci_low": 0.3036650675151261,
+      "ci_high": 0.3949326976199486
+    },
+    {
+      "label": "ET components",
+      "feature": "et_components_10",
+      "outcome": "mean_dice",
+      "controls": [
+        "log_et_volume",
+        "log_wt_volume"
+      ],
+      "partial_rho": -0.2591011197497679,
+      "ci_low": -0.30363395389454684,
+      "ci_high": -0.211529548105004
+    }
+  ]
+}

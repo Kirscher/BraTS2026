@@ -26,10 +26,28 @@ the 450 cases shared by all evaluated configurations:
 - `src/brats2026/packaging/`: NIfTI geometry validation;
 - `scripts/`: model staging, input preparation, packaging, and analysis;
 - `configs/final_inference.yaml`: submitted inference configuration;
+- `configs/nnunet/`: exact `dataset.json` and `plans.json` used by the model;
+- `results/`: aggregate validation, failure-analysis, and ET-sweep summaries;
 - `tests/`: unit tests for geometry safeguards.
 
-No challenge data, model weights, predictions, score exports, manuscript
-sources, credentials, or cluster-specific launch scripts are distributed.
+No challenge data, predictions, per-case score exports, manuscript sources,
+credentials, or cluster-specific launch scripts are distributed.
+
+## Checkpoints
+
+The five epoch-1,000 checkpoints are distributed in the
+[`camera-ready-v1` GitHub Release](https://github.com/Kirscher/BraTS2026/releases/tag/camera-ready-v1).
+Download and extract the bundle from the repository root:
+
+```bash
+curl -fL -o brats-goat-2026-nnunet-camera-ready-v1.tar.gz \
+  https://github.com/Kirscher/BraTS2026/releases/download/camera-ready-v1/brats-goat-2026-nnunet-camera-ready-v1.tar.gz
+tar -xzf brats-goat-2026-nnunet-camera-ready-v1.tar.gz -C work/nnUNet_results
+```
+
+The release includes a SHA-256 manifest for all five checkpoints and the two
+configuration files. The MIT licence covers the repository code; use of the
+checkpoints remains subject to the applicable BraTS challenge/data terms.
 
 ## Installation and tests
 
@@ -48,9 +66,7 @@ python -m pip install -e '.[analysis]'
 
 ## Build the inference image
 
-Place the five trained
-`nnUNetTrainer__nnUNetPlans__3d_fullres` folds under
-`work/nnUNet_results/Dataset501_BraTSGoAT/`, then run:
+After extracting the checkpoint release as above, run:
 
 ```bash
 scripts/prepare_submission_model_base.sh
@@ -73,6 +89,10 @@ docker run --rm --gpus all --network none --shm-size=8g \
 TTA is enabled by default. Set `BRATS_ENABLE_TTA=0` at runtime only for an
 ablation.
 
+On the 451-case validation archive, five-fold mirrored inference took 1 h 55
+min on one NVIDIA Quadro RTX 6000 (about 15.3 s/case, end-to-end wall time).
+Peak allocated VRAM was not instrumented.
+
 ## Analysis
 
 The repository includes the scripts used for:
@@ -80,7 +100,23 @@ The repository includes the scripts used for:
 - paired comparisons of official validation scores;
 - source-to-pooled-validation DSC analysis;
 - out-of-fold failure characterization;
+- fold-stratified bootstrap intervals and the paper failure figure;
 - cross-fitted ET probability-threshold and component-size sweeps.
 
 All input paths are explicit command-line arguments or repository-relative
 local paths. Analysis outputs are written below ignored `work/` directories.
+The scripts that reproduce paired contrasts and failure analyses require
+organizer-provided labels, OOF predictions, or official per-case score exports;
+those inputs cannot be redistributed here. The release therefore supports code
+inspection and rerunning with authorized inputs, while `results/` provides the
+reported aggregate outputs.
+
+The four targeted partial-correlation intervals can be regenerated from an
+authorized `case_features.csv` as follows:
+
+```bash
+python scripts/render_failure_analysis.py \
+  --features work/analysis/failure_atlas/case_features.csv \
+  --output work/analysis/failure_atlas/failure_analysis.pdf \
+  --stats-output work/analysis/failure_atlas/failure_analysis_stats.json
+```

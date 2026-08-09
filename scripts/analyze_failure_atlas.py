@@ -14,7 +14,6 @@ import hashlib
 import json
 import os
 import platform
-import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -331,7 +330,6 @@ def partial_spearman_table(frame: pd.DataFrame) -> pd.DataFrame:
             ("log_et_volume", "log_wt_volume"),
         ),
         ("et_components_10", "mean_dice", ("log_et_volume", "log_wt_volume")),
-        ("et_compactness", "et_dice", ("log_et_volume",)),
     )
     rows = []
     for feature, outcome, controls in hypotheses:
@@ -763,25 +761,12 @@ def main() -> None:
         "scikit_learn": sklearn.__version__,
         "random_seed": args.seed,
         "workers": args.workers,
-        "command": [sys.executable, *sys.argv],
+        "entrypoint": Path(__file__).name,
         "repository": {
-            "path": str(ROOT),
             "git_commit": os.environ.get("BRATS_ANALYSIS_GIT_COMMIT"),
             "dirty_at_launch": os.environ.get("BRATS_ANALYSIS_GIT_DIRTY"),
             "analysis_script_sha256": sha256(Path(__file__).resolve()),
             "slurm_script_sha256": os.environ.get("BRATS_ANALYSIS_SLURM_SCRIPT_SHA256"),
-        },
-        "slurm": {
-            key: os.environ.get(key)
-            for key in (
-                "SLURM_JOB_ID",
-                "SLURM_JOB_NAME",
-                "SLURM_JOB_PARTITION",
-                "SLURM_JOB_ACCOUNT",
-                "SLURM_CPUS_PER_TASK",
-                "SLURM_MEM_PER_NODE",
-                "SLURMD_NODENAME",
-            )
         },
         "n_cases": len(frame),
         "failure_definition": {

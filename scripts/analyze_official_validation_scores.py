@@ -8,7 +8,6 @@ import hashlib
 import json
 import platform
 import shutil
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -251,6 +250,7 @@ def main() -> None:
                         "metric": metric,
                         "n": int(len(finite)),
                         "mean": float(finite.mean()),
+                        "sd": float(finite.std(ddof=1)),
                     }
                 )
     aggregate = pd.DataFrame(aggregate_records)
@@ -262,7 +262,7 @@ def main() -> None:
     input_paths = {**paths, "oof_features": args.oof_features}
     metadata = {
         "analysis": "official_validation_paired_statistics",
-        "command": " ".join(sys.argv),
+        "entrypoint": Path(__file__).name,
         "seed": args.seed,
         "bootstrap": {
             "replicates": args.bootstrap_replicates,
@@ -285,13 +285,12 @@ def main() -> None:
         },
         "inputs": {
             name: {
-                "path": str(path.resolve()),
-                "sha256": sha256(path),
-                **(
-                    {"source_path": str(source_paths[name].resolve())}
-                    if name in source_paths
-                    else {}
+                "file": (
+                    str(path.relative_to(args.output))
+                    if path.is_relative_to(args.output)
+                    else path.name
                 ),
+                "sha256": sha256(path),
             }
             for name, path in input_paths.items()
         },

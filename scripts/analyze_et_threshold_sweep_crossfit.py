@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import platform
-import sys
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -485,8 +484,7 @@ def main() -> None:
         "experiment_id": "BRATS2026-20260729-ETTHR001",
         "analysis": "cross_fitted_et_threshold_and_component_size_sweep",
         "created_at": pd.Timestamp.now(tz="Europe/Paris").isoformat(),
-        "command": " ".join(sys.argv),
-        "working_directory": str(Path.cwd()),
+        "entrypoint": Path(__file__).name,
         "source": {
             "source_commit": args.source_commit,
             "local_git_commit": os.environ.get("BRATS_GIT_COMMIT", "unknown"),
@@ -496,8 +494,8 @@ def main() -> None:
             ),
         },
         "inputs": {
-            "predictions_root": str(args.predictions_root.resolve()),
-            "labels_dir": str(args.labels_dir.resolve()),
+            "predictions_root": args.predictions_root.name,
+            "labels_dir": args.labels_dir.name,
             "case_counts": input_counts,
             "probability_channel_order": ["WT", "TC", "ET"],
             "et_probability_channel": 2,
@@ -542,7 +540,6 @@ def main() -> None:
             "baseline_expected_dice": EXPECTED_DICE,
         },
         "environment": {
-            "host": platform.node(),
             "python": platform.python_version(),
             "numpy": np.__version__,
             "pandas": pd.__version__,

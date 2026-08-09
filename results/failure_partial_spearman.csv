@@ -1,0 +1,5 @@
+feature,outcome,controls,n,partial_rho,p_value,p_fdr_4_tests
+log_et_volume,mean_dice,log_wt_volume,1343,0.48315363516866716,1.7465225144082916e-79,6.986090057633166e-79
+et_wt_ratio,mean_dice,"log_et_volume,log_wt_volume",1343,-0.03921616871068022,0.15089769228921215,0.15089769228921215
+et_largest_fraction,mean_dice,"log_et_volume,log_wt_volume",1318,0.34962820297573943,3.44821633103976e-39,6.89643266207952e-39
+et_components_10,mean_dice,"log_et_volume,log_wt_volume",1343,-0.25910111974976796,4.833922836353555e-22,6.445230448471406e-22

@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "brats-goat-2026"
 version = "0.1.0"
 description = "Minimal inference and evaluation code for BraTS-GoAT 2026 Task 3."
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.26",
