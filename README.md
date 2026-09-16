@@ -120,3 +120,19 @@ python scripts/render_failure_analysis.py \
   --output work/analysis/failure_atlas/failure_analysis.pdf \
   --stats-output work/analysis/failure_atlas/failure_analysis_stats.json
 ```
+
+## Citation
+
+If you use this code or the checkpoints, please cite the preprint:
+
+```bibtex
+@misc{kirscher2026assessing,
+  title         = {Assessing nnU-Net Generalization across Brain Tumor Populations in BraTS-GoAT 2026},
+  author        = {Kirscher, Tristan and Metzger, Vivian and Meyer, Philippe and Coubez, Xavier},
+  year          = {2026},
+  eprint        = {2609.15524},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2609.15524}
+}
+```

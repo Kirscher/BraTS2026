@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the following preprint."
+type: software
+title: "BraTS-GoAT 2026 Task 3"
+authors:
+  - family-names: Kirscher
+    given-names: Tristan
+  - family-names: Metzger
+    given-names: Vivian
+  - family-names: Meyer
+    given-names: Philippe
+  - family-names: Coubez
+    given-names: Xavier
+version: camera-ready-v1
+date-released: "2026-09-16"
+url: "https://github.com/Kirscher/BraTS2026"
+preferred-citation:
+  type: article
+  title: "Assessing nnU-Net Generalization across Brain Tumor Populations in BraTS-GoAT 2026"
+  authors:
+    - family-names: Kirscher
+      given-names: Tristan
+    - family-names: Metzger
+      given-names: Vivian
+    - family-names: Meyer
+      given-names: Philippe
+    - family-names: Coubez
+      given-names: Xavier
+  year: 2026
+  journal: "arXiv e-prints"
+  identifiers:
+    - type: url
+      value: "https://arxiv.org/abs/2609.15524"
